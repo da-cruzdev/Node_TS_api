@@ -1,6 +1,7 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,3 +10,70 @@ datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
 }
+
+   
+model Account {
+  id Int     @id @default(autoincrement())
+  IBAN String @unique
+  balance Float
+  currency String
+  bic String
+  lastBankSynchronization DateTime
+  transactions Transaction[]
+  ibans Iban[]
+
+}
+
+model Transaction {
+  id Int     @id @default(autoincrement())
+  transactionId String
+  IBAN String
+  amount Float
+  currency String
+  valueDate DateTime
+  creationDate DateTime
+  status String
+  reference String
+  endToEndID String
+  counterPartyId String
+  clientCounterPartyId String
+  paymentId String
+  clientPaymentId String
+  account Account @relation(fields: [IBAN], references: [IBAN])
+  payment Payment @relation(fields: [paymentId], references: [paymentId])
+
+}
+
+model Iban {
+  id Int     @id @default(autoincrement())
+  vIban String
+  iban String
+  account Int
+  status String
+  customerReference String
+  accountId Account @relation(fields: [account], references: [id])
+}
+
+model Payment {
+  id Int     @id @default(autoincrement())
+  paymentId String @unique
+  account String
+  amount Float
+  currency String
+  counterPartyId String
+  referenceText String
+  executionDate DateTime
+  clientPaymentId String
+  status String
+  transactions Transaction[]
+}
+
+model User {
+  id Int      @id @default(autoincrement())
+  name String?
+  email String
+  password String
+  role String
+
+}
+
