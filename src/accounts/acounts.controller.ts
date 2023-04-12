@@ -37,28 +37,20 @@ export const createAccount = async (req: Request, res: Response) => {
       }, {});
       res.status(500).json({ error: "Account creation failed", errors });
     } else {
-      res.status(500).json({ error: "Account creation failed", errors: null }); // Ajout de la gestion d'erreur pour les autres exceptions
+      res.status(500).json({ error: "Account creation failed", errors: null });
     }
   }
 };
 
 export const getAllAccounts = async (req: Request, res: Response) => {
-  try {
-    const accounts = await prisma.account.findMany();
-    console.log(accounts);
-    res.status(200).json(accounts);
-  } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Erreur lors de la récupération des comptes" });
-  }
+  const accounts = await prisma.account.findMany();
+
+  res.status(200).json(accounts);
 };
 
 export const getOneAccount = async (iban: string) => {
   try {
     const account = await prisma.account.findUnique({ where: { iban } });
-    console.log(account);
-
     return account;
   } catch (error) {
     throw new Error("Erreur lors de la récupération du compte");
