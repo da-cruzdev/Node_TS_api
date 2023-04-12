@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { Response, Request } from "express";
-import { CreateUserDTO, LoginDTO, userSchema } from "./user.dto";
+import { CreateUserDTO, LoginDTO } from "./dto/user.dto";
+import { userSchema } from "./validators/user.validator";
 import bcrypt from "bcrypt";
 import { generateToken } from "./token/createToken";
 
@@ -36,6 +37,7 @@ export const signUp = async (req: Request, res: Response) => {
     }
   }
 };
+
 export const login = async (req: Request, res: Response) => {
   const { email, password }: LoginDTO = req.body;
 
