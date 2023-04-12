@@ -22,15 +22,13 @@ model Account {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   transactions Transaction[]
-  // parent      Account?      @relation("SubAccount", fields: [parentId])
-  // parentId    Int?
 }
 
 model Transaction {
   id                 Int      @id @default(autoincrement())
   amount             Float
   counterPartyId     String
-  transactionType    String  // Utilise une chaîne de caractères pour définir le type de transaction
+  transactionType    String 
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
   accountEmitter     Account? @relation(fields: [accountIbanEmitter], references: [iban])
