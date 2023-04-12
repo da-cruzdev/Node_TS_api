@@ -25,7 +25,7 @@ export const signUp = async (req: Request, res: Response) => {
         password: hashedPassword,
       },
     });
-    return newUser;
+    res.status(200).json(newUser);
   } catch (error: any) {
     if (error && error.details) {
       const errors = error.details.reduce((acc: any, current: any) => {
@@ -55,7 +55,7 @@ export const login = async (req: Request, res: Response) => {
     }
 
     const token = generateToken(user);
-    res.status(200).json(token);
+    res.status(200).json({ token: token });
   } catch (error) {
     res.status(500).json({ error: "Failed to login" });
   }
