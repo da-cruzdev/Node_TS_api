@@ -1,6 +1,6 @@
 import express, { Router } from "express";
 import { PrismaClient } from "@prisma/client";
-import { login, signUp } from "./user.controller";
+import { getUserList, login, signUp } from "./user.controller";
 
 const UserRoutes = (prisma: PrismaClient): Router => {
   const router = express.Router();
@@ -9,8 +9,11 @@ const UserRoutes = (prisma: PrismaClient): Router => {
 
   router.post("/auth/login", login);
 
-  router.get("/", (req, res) => {
-    res.send("Hello");
+  router.get("/admin/list", async (req, res) => {
+    const { limit } = req.query;
+
+    const users = await getUserList(Number(limit));
+    res.status(200).json(users);
   });
 
   return router;

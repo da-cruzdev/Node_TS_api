@@ -60,3 +60,15 @@ export const login = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Failed to login" });
   }
 };
+
+export const getUserList = async (limit: number) => {
+  const users = await prisma.user.findMany({
+    take: limit,
+    select: {
+      name: true,
+      email: true,
+    },
+  });
+
+  return users;
+};
