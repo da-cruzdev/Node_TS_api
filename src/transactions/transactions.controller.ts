@@ -89,11 +89,11 @@ const formatTransactionResponse = (transaction: any) => {
 export const getAllTransactions = async (req: any, res: any) => {
   const transactions = await prisma.transaction.findMany();
   const totalRecords = transactions.length;
-  const totalPages = Math.ceil(totalRecords / 10);
+  const totalPages = Math.ceil(totalRecords / 5);
   const currentPage = parseInt(req.query.page) || 1;
 
-  const startIndex = (currentPage - 1) * 10;
-  const endIndex = startIndex + 10;
+  const startIndex = (currentPage - 1) * 5;
+  const endIndex = startIndex + 5;
   const transactionsPerPage = transactions.slice(startIndex, endIndex);
 
   const response = {
@@ -104,4 +104,15 @@ export const getAllTransactions = async (req: any, res: any) => {
   };
 
   res.status(200).json(response);
+};
+
+export const getOneTransaction = async (id: number) => {
+  try {
+    const transaction = await prisma.transaction.findUnique({ where: { id } });
+
+    if (!transaction) throw new Error(`Transaction with id ${id} not found`);
+    else return formatTransactionResponse(transaction);
+  } catch (error) {
+    throw new Error(`Error to get  transaction`);
+  }
 };
