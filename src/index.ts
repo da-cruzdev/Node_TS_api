@@ -4,6 +4,7 @@ import cors from "cors";
 import UserRoutes from "./user/user.route";
 import { PrismaClient } from "@prisma/client";
 import AccountsRoutes from "./accounts/accounts.route";
+import TransactionsRoutes from "./transactions/transactions.route";
 
 const prisma = new PrismaClient();
 
@@ -23,6 +24,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/", UserRoutes(prisma));
 app.use("/", AccountsRoutes(prisma));
+app.use("/", TransactionsRoutes(prisma));
 
 app.listen(port, () => {
   console.log(`Listennig on port ${port}`);
