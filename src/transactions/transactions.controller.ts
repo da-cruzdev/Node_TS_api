@@ -1,6 +1,8 @@
 import { PrismaClient } from "@prisma/client";
 import { TransactionSchema } from "./validators/transaction.validator";
 import TransactionDto from "./dto/transaction.dto";
+import { formatDataResponse } from "../common/dataFormat";
+import { getdataWithPagination } from "../common/dataPagination";
 
 const prisma = new PrismaClient();
 
@@ -74,36 +76,20 @@ export const createTransaction = async (req: any, res: any) => {
   }
 };
 
-const formatTransactionResponse = (transaction: any) => {
-  return {
-    id: transaction.id,
-    amount: transaction.amount,
-    counterPartyId: transaction.counterPartyId,
-    transactionType: transaction.transactionType,
-    createdAt: transaction.createdAt.toDateString(),
-    updatedAt: transaction.updatedAt.toDateString(),
-    accountIbanEmitter: transaction.accountIbanEmitter,
-  };
-};
-
 export const getAllTransactions = async (req: any, res: any) => {
-  const transactions = await prisma.transaction.findMany();
-  const totalRecords = transactions.length;
-  const totalPages = Math.ceil(totalRecords / 5);
-  const currentPage = parseInt(req.query.page) || 1;
+  try {
+    const transactions = await prisma.transaction.findMany();
+    const formattedTransaction = transactions.map((transaction) =>
+      formatDataResponse(transaction, "Transaction")
+    );
 
-  const startIndex = (currentPage - 1) * 5;
-  const endIndex = startIndex + 5;
-  const transactionsPerPage = transactions.slice(startIndex, endIndex);
+    const response = await getdataWithPagination(formattedTransaction, req);
+    res.status(200).json(response);
+  } catch (error) {
+    console.log(error);
 
-  const response = {
-    totalRecords,
-    totalPages,
-    currentPage,
-    transactions: transactionsPerPage.map(formatTransactionResponse),
-  };
-
-  res.status(200).json(response);
+    res.status(500).json({ error: error });
+  }
 };
 
 export const getOneTransaction = async (id: number) => {
@@ -111,7 +97,7 @@ export const getOneTransaction = async (id: number) => {
     const transaction = await prisma.transaction.findUnique({ where: { id } });
 
     if (!transaction) throw new Error(`Transaction with id ${id} not found`);
-    else return formatTransactionResponse(transaction);
+    else return formatDataResponse(transaction, "Transaction");
   } catch (error) {
     throw new Error(`Error to get  transaction`);
   }
