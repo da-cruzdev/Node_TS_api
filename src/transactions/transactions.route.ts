@@ -1,11 +1,16 @@
 import express, { Router } from "express";
 import { PrismaClient } from "@prisma/client";
-import { createTransaction } from "./transactions.controller";
+import {
+  createTransaction,
+  getAllTransactions,
+} from "./transactions.controller";
 
 const TransactionsRoutes = (prisma: PrismaClient): Router => {
   const router = express.Router();
 
   router.post("/transactions/create", createTransaction);
+
+  router.get("/transactions", getAllTransactions);
 
   return router;
 };

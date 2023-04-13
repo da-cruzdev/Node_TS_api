@@ -73,3 +73,35 @@ export const createTransaction = async (req: any, res: any) => {
       .json({ error: "Erreur lors de la création de la transaction" });
   }
 };
+
+const formatTransactionResponse = (transaction: any) => {
+  return {
+    id: transaction.id,
+    amount: transaction.amount,
+    counterPartyId: transaction.counterPartyId,
+    transactionType: transaction.transactionType,
+    createdAt: transaction.createdAt.toDateString(),
+    updatedAt: transaction.updatedAt.toDateString(),
+    accountIbanEmitter: transaction.accountIbanEmitter,
+  };
+};
+
+export const getAllTransactions = async (req: any, res: any) => {
+  const transactions = await prisma.transaction.findMany();
+  const totalRecords = transactions.length;
+  const totalPages = Math.ceil(totalRecords / 10);
+  const currentPage = parseInt(req.query.page) || 1;
+
+  const startIndex = (currentPage - 1) * 10;
+  const endIndex = startIndex + 10;
+  const transactionsPerPage = transactions.slice(startIndex, endIndex);
+
+  const response = {
+    totalRecords,
+    totalPages,
+    currentPage,
+    transactions: transactionsPerPage.map(formatTransactionResponse),
+  };
+
+  res.status(200).json(response);
+};
