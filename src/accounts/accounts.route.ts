@@ -5,6 +5,7 @@ import {
   createSubAccount,
   getAllAccounts,
   getOneAccount,
+  getSubAccountsByParentId,
 } from "./acounts.controller";
 
 const AccountsRoutes = (prisma: PrismaClient): Router => {
@@ -12,7 +13,7 @@ const AccountsRoutes = (prisma: PrismaClient): Router => {
 
   router.post("/account/create", createAccount);
 
-  router.post("/subaccount/create", createSubAccount);
+  router.post("/accounts/subaccounts/create", createSubAccount);
 
   router.get("/accounts", getAllAccounts);
 
@@ -31,6 +32,8 @@ const AccountsRoutes = (prisma: PrismaClient): Router => {
         .json({ error: "Erreur lors de la récupération du compte" });
     }
   });
+
+  router.get("/accounts/:iban/subaccounts", getSubAccountsByParentId);
 
   return router;
 };

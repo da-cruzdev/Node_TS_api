@@ -2,6 +2,12 @@ import { PrismaClient } from "@prisma/client";
 import { Response, Request } from "express";
 import { v4 as uuidv4 } from "uuid";
 import { accountSchema } from "./validators/account.validator";
+import { Prisma } from "@prisma/client";
+
+// Étendez le type AccountWhereInput pour inclure le champ parentId
+type AccountWhereInputWithParentId = Prisma.AccountWhereInput & {
+  parentId?: string;
+};
 
 const prisma = new PrismaClient();
 
@@ -113,11 +119,9 @@ export const createSubAccount = async (req: Request, res: Response) => {
 
     res.status(200).json(createdSubAccount);
   } catch (error: any) {
-    res
-      .status(500)
-      .json({
-        error: `Please ${error.meta.target[0]} already exists...Enter another one`,
-      });
+    res.status(500).json({
+      error: `Please ${error.meta.target[0]} already exists...Enter another one`,
+    });
   }
 };
 
@@ -133,5 +137,31 @@ export const getOneAccount = async (iban: string) => {
     return account;
   } catch (error) {
     throw new Error("Erreur lors de la récupération du compte");
+  }
+};
+
+export const getSubAccountsByParentId = async (req: Request, res: Response) => {
+  try {
+    const { iban } = req.params;
+
+    const parentAccount = await prisma.account.findUnique({
+      where: {
+        iban,
+      },
+    });
+    if (!parentAccount) {
+      res.status(404).json({ error: "Parent account not found" });
+    }
+    const subAccounts = await prisma.account.findMany({
+      where: {
+        parentId: iban,
+      } as AccountWhereInputWithParentId,
+    });
+
+    res.status(200).json(subAccounts);
+  } catch (error: any) {
+    res
+      .status(500)
+      .json({ error: "Failed to get sub-accounts", message: error.message });
   }
 };
