@@ -42,6 +42,85 @@ export const createAccount = async (req: Request, res: Response) => {
   }
 };
 
+export const createSubAccount = async (req: Request, res: Response) => {
+  try {
+    const {
+      accountIban,
+      name,
+      email,
+      number,
+      balance,
+      currency,
+      bic,
+      accountType,
+    } = req.body;
+
+    const validationResult = accountSchema.validate(
+      {
+        name,
+        email,
+        number,
+        balance,
+        currency,
+        bic,
+        accountType,
+      },
+      { abortEarly: false }
+    );
+    if (validationResult.error) {
+      return res
+        .status(400)
+        .json({ error: validationResult.error.details[0].message });
+    }
+
+    const mainAccount = await prisma.account.findUnique({
+      where: { iban: accountIban },
+    });
+    if (!mainAccount) {
+      return res.status(404).json({ error: "Main account not found" });
+    }
+
+    if (mainAccount.accountType !== "courant") {
+      return res
+        .status(400)
+        .json({ error: "Main account must be of type courant" });
+    }
+
+    let subAccountType;
+    if (accountType === "savings" || accountType === "frozen") {
+      subAccountType = accountType;
+    } else {
+      return res
+        .status(400)
+        .json({ error: "Invalid account type for sub account" });
+    }
+
+    const iban = `DE${uuidv4()}`;
+    const newSubAccount = {
+      iban,
+      name,
+      email,
+      number,
+      balance,
+      currency,
+      bic,
+      accountType: subAccountType,
+      parentId: accountIban,
+    };
+    const createdSubAccount = await prisma.account.create({
+      data: newSubAccount,
+    });
+
+    res.status(200).json(createdSubAccount);
+  } catch (error: any) {
+    res
+      .status(500)
+      .json({
+        error: `Please ${error.meta.target[0]} already exists...Enter another one`,
+      });
+  }
+};
+
 export const getAllAccounts = async (req: Request, res: Response) => {
   const accounts = await prisma.account.findMany();
 

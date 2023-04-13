@@ -2,6 +2,7 @@ import express, { Router } from "express";
 import { PrismaClient } from "@prisma/client";
 import {
   createAccount,
+  createSubAccount,
   getAllAccounts,
   getOneAccount,
 } from "./acounts.controller";
@@ -10,6 +11,8 @@ const AccountsRoutes = (prisma: PrismaClient): Router => {
   const router = express.Router();
 
   router.post("/account/create", createAccount);
+
+  router.post("/subaccount/create", createSubAccount);
 
   router.get("/accounts", getAllAccounts);
 

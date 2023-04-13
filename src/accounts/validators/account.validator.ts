@@ -12,5 +12,5 @@ export const accountSchema = Joi.object({
   balance: Joi.number().positive().required(),
   currency: Joi.string().valid("USD", "EURO", "FCFA").required(),
   bic: Joi.string().required(),
-  accountType: Joi.string().valid("saving", "frozen").required(),
+  accountType: Joi.string().valid("courant", "savings", "frozen").required(),
 });

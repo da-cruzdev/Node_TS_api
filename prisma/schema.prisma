@@ -10,36 +10,40 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Account {
-  iban        String        @id @unique
-  name        String
-  email       String
-  number      String        @unique
-  balance     Float
-  currency    String
-  bic         String
-  accountType String  
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  transactions Transaction[]
+model Transaction {
+  id                  Int      @id @default(autoincrement())
+  amount              Float
+  transactionType     String
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  accountEmitter      Account? @relation(name: "Emitter", fields: [accountIbanEmitter], references: [iban])
+  accountReceiver     Account? @relation(name: "Receiver", fields: [accountIbanReceiver], references: [iban])
+  accountIbanEmitter  String?
+  accountIbanReceiver String?
 }
 
-model Transaction {
-  id                 Int      @id @default(autoincrement())
-  amount             Float
-  counterPartyId     String
-  transactionType    String 
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  accountEmitter     Account? @relation(fields: [accountIbanEmitter], references: [iban])
-  accountIbanEmitter String?
+model Account {
+  iban                 String        @id @unique
+  name                 String
+  email                String
+  number               String        @unique
+  balance              Float
+  currency             String
+  bic                  String
+  accountType          String
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  transactionsEmitted  Transaction[] @relation("Emitter")
+  transactionsReceived Transaction[] @relation("Receiver")
+  // parentAccount Account? @relation("ParentAccount", fields: [parentId], references: [iban])
+  parentId String?
 }
 
 model User {
-  id       Int    @id @default(autoincrement())
-  name     String
-  email    String @unique
-  password String
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
