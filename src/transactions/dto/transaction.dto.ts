@@ -1,12 +1,8 @@
-type TransactionDto = {
+interface TransactionData {
   amount: number;
-  counterPartyId: string;
-  transactionType: "credit" | "deposit" | "card" | "debit";
-} & (
-  | { transactionType: "credit" }
-  | { transactionType: "deposit" }
-  | { transactionType: "card" }
-  | { transactionType: "debit"; accountIbanEmitter: string }
-);
+  accountIbanReceiver?: string;
+  transactionType: "credit" | "debit" | "transfert";
+  accountIbanEmitter?: string;
+}
 
-export default TransactionDto;
+export default TransactionData;

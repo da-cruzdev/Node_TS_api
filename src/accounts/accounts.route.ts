@@ -12,7 +12,7 @@ import {
 const AccountsRoutes = (prisma: PrismaClient): Router => {
   const router = express.Router();
 
-  router.post("/account/create", createAccount);
+  router.post("/accounts/create", createAccount);
 
   router.post("/accounts/subaccounts/create", createSubAccount);
 

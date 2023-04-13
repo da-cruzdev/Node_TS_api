@@ -1,14 +1,14 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { TransactionSchema } from "./validators/transaction.validator";
-import TransactionDto from "./dto/transaction.dto";
 import { formatDataResponse } from "../common/dataFormat";
 import { getdataWithPagination } from "../common/dataPagination";
+import { Request, Response } from "express";
 
 const prisma = new PrismaClient();
 
-export const createTransaction = async (req: any, res: any) => {
+export const createTransaction = async (req: Request, res: Response) => {
   try {
-    const { amount, counterPartyId, transactionType, accountIbanEmitter } =
+    const { amount, transactionType, accountIbanEmitter, accountIbanReceiver } =
       req.body;
 
     const validation = TransactionSchema.validate(req.body, {
@@ -20,27 +20,32 @@ export const createTransaction = async (req: any, res: any) => {
         .json({ error: validation.error.details[0].message });
     }
 
-    let transactionData: TransactionDto;
+    let transactionData;
     switch (transactionType) {
       case "credit":
-        transactionData = { amount, counterPartyId, transactionType };
-        break;
-      case "deposit":
-        transactionData = { amount, counterPartyId, transactionType };
-        break;
-      case "card":
-        transactionData = { amount, counterPartyId, transactionType };
+        transactionData = {
+          amount,
+          transactionType,
+          accountIbanReceiver,
+        };
         break;
       case "debit":
         transactionData = {
           amount,
-          counterPartyId,
           transactionType,
           accountIbanEmitter,
         };
         break;
+      case "transfert":
+        transactionData = {
+          amount,
+          transactionType,
+          accountIbanReceiver,
+          accountIbanEmitter,
+        };
+        break;
       default:
-        return res.status(400).json({ error: "Type de transaction invalide" });
+        return res.status(400).json({ error: "Invalid transaction type" });
     }
 
     const createdTransaction = await prisma.transaction.create({
@@ -49,30 +54,53 @@ export const createTransaction = async (req: any, res: any) => {
 
     switch (transactionType) {
       case "credit":
-        break;
-      case "deposit":
         await prisma.account.update({
-          where: { iban: accountIbanEmitter },
+          where: { iban: accountIbanReceiver },
           data: { balance: { increment: amount } },
         });
         break;
-      case "card":
-        break;
+
       case "debit":
+        const accountData = await prisma.account.findUnique({
+          where: { iban: accountIbanEmitter },
+        });
+        if (accountData && accountData.accountType === "blocked") {
+          return res.status(400).json({ error: "emitter account blocked" });
+        }
         await prisma.account.update({
           where: { iban: accountIbanEmitter },
           data: { balance: { decrement: amount } },
         });
         break;
+
+      case "transfert":
+        const accountIbanEmitterData = await prisma.account.findUnique({
+          where: { iban: accountIbanEmitter },
+        });
+        if (
+          accountIbanEmitterData &&
+          accountIbanEmitterData.accountType === "blocked"
+        ) {
+          return res.status(400).json({ error: "emitter account blocked" });
+        }
+
+        await prisma.account.update({
+          where: { iban: accountIbanEmitter },
+          data: { balance: { decrement: amount } },
+        });
+        await prisma.account.update({
+          where: { iban: accountIbanReceiver },
+          data: { balance: { increment: amount } },
+        });
+        break;
+
       default:
-        return res.status(400).json({ error: "Type de transaction invalide" });
+        return res.status(400).json({ error: "Invalid transaction type" });
     }
 
     res.status(200).json(createdTransaction);
   } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Erreur lors de la création de la transaction" });
+    res.status(500).json({ error: "Failed to create transaction" });
   }
 };
 
