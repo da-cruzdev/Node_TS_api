@@ -9,8 +9,8 @@ export const accountSchema = Joi.object({
   number: Joi.string()
     .regex(/^(?:\+|00)225|0[17]\d{8}$/)
     .required(),
-  balance: Joi.number().required(),
-  currency: Joi.string().required(),
+  balance: Joi.number().positive().required(),
+  currency: Joi.string().valid("USD", "EURO", "FCFA").required(),
   bic: Joi.string().required(),
-  accountType: Joi.string().required(),
+  accountType: Joi.string().valid("saving", "frozen").required(),
 });
