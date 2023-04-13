@@ -165,3 +165,23 @@ export const getSubAccountsByParentId = async (req: Request, res: Response) => {
       .json({ error: "Failed to get sub-accounts", message: error.message });
   }
 };
+
+export const getSubAccountByIban = async (req: Request, res: Response) => {
+  try {
+    const { iban } = req.params;
+
+    const subAccount = await prisma.account.findUnique({
+      where: { iban },
+    });
+
+    if (!subAccount) {
+      return res.status(404).json({ error: "Sub-account not found" });
+    }
+
+    res.status(200).json(subAccount);
+  } catch (error: any) {
+    res.status(500).json({
+      error: "Failed to get sub-account",
+    });
+  }
+};

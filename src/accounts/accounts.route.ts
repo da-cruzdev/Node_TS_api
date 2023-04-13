@@ -5,6 +5,7 @@ import {
   createSubAccount,
   getAllAccounts,
   getOneAccount,
+  getSubAccountByIban,
   getSubAccountsByParentId,
 } from "./acounts.controller";
 
@@ -34,6 +35,8 @@ const AccountsRoutes = (prisma: PrismaClient): Router => {
   });
 
   router.get("/accounts/:iban/subaccounts", getSubAccountsByParentId);
+
+  router.get("/accounts/:iban/subaccounts/:iban", getSubAccountByIban);
 
   return router;
 };
