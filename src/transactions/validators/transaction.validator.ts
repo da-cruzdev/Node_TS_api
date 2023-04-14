@@ -1,4 +1,5 @@
-import Joi from "joi";
+// import Joi from "joi";
+const Joi = require("joi");
 
 export const TransactionSchema = Joi.object({
   amount: Joi.number().positive().required(),
