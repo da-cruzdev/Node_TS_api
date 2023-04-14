@@ -149,12 +149,15 @@ export const getAllAccounts = async (req: Request, res: Response) => {
   res.status(200).json(response);
 };
 
-export const getOneAccount = async (iban: string) => {
+export const getOneAccount = async (req: Request, res: Response) => {
   try {
+    const { iban } = req.params;
     const account = await prisma.account.findUnique({ where: { iban } });
-    return account;
+    if (!account)
+      res.status(404).json({ error: `Account with iban ${iban} not found` });
+    return res.status(200).json(account);
   } catch (error) {
-    throw new Error("Erreur lors de la récupération du compte");
+    res.status(500).json({ error });
   }
 };
 
@@ -201,5 +204,31 @@ export const getSubAccountByIban = async (req: Request, res: Response) => {
     res.status(500).json({
       error: "Failed to get sub-account",
     });
+  }
+};
+
+export const unblockAccount = async (req: Request, res: Response) => {
+  try {
+    const { iban } = req.params;
+    const accountData = await prisma.account.findUnique({
+      where: { iban },
+    });
+
+    if (!accountData) {
+      throw new Error("Account not found");
+    }
+
+    if (accountData.accountType !== "blocked") {
+      throw new Error("Account is not blocked");
+    }
+
+    await prisma.account.update({
+      where: { iban },
+      data: { accountType: "savings" },
+    });
+
+    return { success: true, message: "Account unblocked successfully" };
+  } catch (error) {
+    throw new Error("Failed to unblock account");
   }
 };

@@ -7,6 +7,7 @@ import {
   getOneAccount,
   getSubAccountByIban,
   getSubAccountsByParentId,
+  unblockAccount,
 } from "./acounts.controller";
 
 const AccountsRoutes = (prisma: PrismaClient): Router => {
@@ -18,25 +19,13 @@ const AccountsRoutes = (prisma: PrismaClient): Router => {
 
   router.get("/accounts", getAllAccounts);
 
-  router.get("/accounts/:iban", async (req: any, res: any) => {
-    try {
-      const iban = req.params.iban;
-      const account = await getOneAccount(iban);
-      if (account) {
-        res.status(200).json(account);
-      } else {
-        res.status(404).json({ error: "account not found" });
-      }
-    } catch (error) {
-      res
-        .status(500)
-        .json({ error: "Erreur lors de la récupération du compte" });
-    }
-  });
+  router.get("/accounts/:iban", getOneAccount);
 
   router.get("/accounts/:iban/subaccounts", getSubAccountsByParentId);
 
   router.get("/accounts/:iban/subaccounts/:iban", getSubAccountByIban);
+
+  router.get("/accounts/:iban/subaccounts/:iban/unblock", unblockAccount);
 
   return router;
 };
