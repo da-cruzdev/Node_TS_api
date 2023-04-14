@@ -3,24 +3,72 @@ import { TransactionSchema } from "./validators/transaction.validator";
 import { formatDataResponse } from "../common/dataFormat";
 import { getdataWithPagination } from "../common/dataPagination";
 import { Request, Response } from "express";
+import TransactionData from "./dto/transaction.dto";
 
 const prisma = new PrismaClient();
+
+const validateTransactionData = (transactionData: TransactionData) => {
+  const validation = TransactionSchema.validate(transactionData, {
+    abortEarly: false,
+  });
+
+  if (validation.error) {
+    throw new Error(validation.error.details[0].message);
+  }
+};
+
+const creditTransaction = async (transactionData: any) => {
+  await prisma.account.update({
+    where: { iban: transactionData.accountIbanReceiver },
+    data: { balance: { increment: transactionData.amount } },
+  });
+};
+
+const debitTransaction = async (transactionData: any) => {
+  const accountData = await prisma.account.findUnique({
+    where: { iban: transactionData.accountIbanEmitter },
+  });
+
+  if (accountData && accountData.accountType === "blocked") {
+    throw new Error("emitter account blocked");
+  }
+
+  await prisma.account.update({
+    where: { iban: transactionData.accountIbanEmitter },
+    data: { balance: { decrement: transactionData.amount } },
+  });
+};
+
+const transferTransaction = async (transactionData: any) => {
+  const accountIbanEmitterData = await prisma.account.findUnique({
+    where: { iban: transactionData.accountIbanEmitter },
+  });
+
+  if (
+    accountIbanEmitterData &&
+    accountIbanEmitterData.accountType === "blocked"
+  ) {
+    throw new Error("emitter account blocked");
+  }
+
+  await prisma.account.update({
+    where: { iban: transactionData.accountIbanEmitter },
+    data: { balance: { decrement: transactionData.amount } },
+  });
+
+  await prisma.account.update({
+    where: { iban: transactionData.accountIbanReceiver },
+    data: { balance: { increment: transactionData.amount } },
+  });
+};
 
 export const createTransaction = async (req: Request, res: Response) => {
   try {
     const { amount, transactionType, accountIbanEmitter, accountIbanReceiver } =
       req.body;
 
-    const validation = TransactionSchema.validate(req.body, {
-      abortEarly: false,
-    });
-    if (validation.error) {
-      return res
-        .status(400)
-        .json({ error: validation.error.details[0].message });
-    }
+    let transactionData: TransactionData;
 
-    let transactionData;
     switch (transactionType) {
       case "credit":
         transactionData = {
@@ -48,52 +96,22 @@ export const createTransaction = async (req: Request, res: Response) => {
         return res.status(400).json({ error: "Invalid transaction type" });
     }
 
+    validateTransactionData(transactionData);
+
     const createdTransaction = await prisma.transaction.create({
       data: transactionData,
     });
 
     switch (transactionType) {
       case "credit":
-        await prisma.account.update({
-          where: { iban: accountIbanReceiver },
-          data: { balance: { increment: amount } },
-        });
+        await creditTransaction(transactionData);
         break;
-
       case "debit":
-        const accountData = await prisma.account.findUnique({
-          where: { iban: accountIbanEmitter },
-        });
-        if (accountData && accountData.accountType === "blocked") {
-          return res.status(400).json({ error: "emitter account blocked" });
-        }
-        await prisma.account.update({
-          where: { iban: accountIbanEmitter },
-          data: { balance: { decrement: amount } },
-        });
+        await debitTransaction(transactionData);
         break;
-
       case "transfert":
-        const accountIbanEmitterData = await prisma.account.findUnique({
-          where: { iban: accountIbanEmitter },
-        });
-        if (
-          accountIbanEmitterData &&
-          accountIbanEmitterData.accountType === "blocked"
-        ) {
-          return res.status(400).json({ error: "emitter account blocked" });
-        }
-
-        await prisma.account.update({
-          where: { iban: accountIbanEmitter },
-          data: { balance: { decrement: amount } },
-        });
-        await prisma.account.update({
-          where: { iban: accountIbanReceiver },
-          data: { balance: { increment: amount } },
-        });
+        await transferTransaction(transactionData);
         break;
-
       default:
         return res.status(400).json({ error: "Invalid transaction type" });
     }
