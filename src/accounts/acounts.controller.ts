@@ -4,7 +4,6 @@ import { v4 as uuidv4 } from "uuid";
 import { accountSchema } from "./validators/account.validator";
 import { Prisma } from "@prisma/client";
 
-// Étendez le type AccountWhereInput pour inclure le champ parentId
 type AccountWhereInputWithParentId = Prisma.AccountWhereInput & {
   parentId?: string;
 };
@@ -126,9 +125,28 @@ export const createSubAccount = async (req: Request, res: Response) => {
 };
 
 export const getAllAccounts = async (req: Request, res: Response) => {
-  const accounts = await prisma.account.findMany();
+  const { page, pageSize } = req.query;
+  const pageNumber = parseInt(page as string) || 1;
+  const pageSizeNumber = parseInt(pageSize as string) || 5;
 
-  res.status(200).json(accounts);
+  const totalRecords = await prisma.account.count();
+  const totalPages = Math.ceil(totalRecords / pageSizeNumber);
+  const currentPage = pageNumber > totalPages ? totalPages : pageNumber;
+
+  const skip = (currentPage - 1) * pageSizeNumber;
+  const accounts = await prisma.account.findMany({
+    skip: skip,
+    take: pageSizeNumber,
+  });
+
+  const response = {
+    totalRecords: totalRecords,
+    totalPages: totalPages,
+    currentPage: currentPage,
+    accounts: accounts,
+  };
+
+  res.status(200).json(response);
 };
 
 export const getOneAccount = async (iban: string) => {
