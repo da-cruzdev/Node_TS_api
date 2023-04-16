@@ -18,6 +18,11 @@ export const signUp = async (req: Request, res: Response) => {
       },
       { abortEarly: false }
     );
+    const oldUser = await prisma.user.findUnique({ where: { email } });
+    if (oldUser) {
+      res.status(400).json({ error: `User with email ${email} already exits` });
+    }
+
     const hashedPassword = await bcrypt.hash(validateData.password, 10);
     const newUser = await prisma.user.create({
       data: {
@@ -26,7 +31,9 @@ export const signUp = async (req: Request, res: Response) => {
         password: hashedPassword,
       },
     });
-    res.status(200).json(newUser);
+    const user = { ...newUser, password: undefined };
+
+    res.status(200).json({ newUser: user });
   } catch (error: any) {
     if (error && error.details) {
       const errors = error.details.reduce((acc: any, current: any) => {
