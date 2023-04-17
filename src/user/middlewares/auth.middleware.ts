@@ -6,9 +6,10 @@ dotenv.config();
 
 export const authMiddleware = (req: any, res: Response, next: NextFunction) => {
   const token = req.header("Authorization")?.replace("Bearer ", "");
-  const errorResponse = res.status(401).json({ error: "Unauthorized" });
 
-  if (!token) return errorResponse;
+  if (!token) {
+    return sendErrorResponse(res, 401, "Unauthorized");
+  }
 
   try {
     const secret: string = process.env.SECRET as string;
@@ -16,6 +17,14 @@ export const authMiddleware = (req: any, res: Response, next: NextFunction) => {
     req.user = decoded;
     next();
   } catch (error) {
-    return errorResponse;
+    return sendErrorResponse(res, 401, "Unauthorized");
   }
+};
+
+const sendErrorResponse = (
+  res: Response,
+  statusCode: number,
+  message: string
+) => {
+  return res.status(statusCode).json({ error: message });
 };

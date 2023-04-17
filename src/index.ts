@@ -5,6 +5,7 @@ import UserRoutes from "./user/user.route";
 import { PrismaClient } from "@prisma/client";
 import AccountsRoutes from "./accounts/accounts.route";
 import TransactionsRoutes from "./transactions/transactions.route";
+import { errorHandler } from "./middleware/errorHandler.middleware";
 
 const prisma = new PrismaClient();
 
@@ -21,6 +22,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(errorHandler);
 
 app.use("/", UserRoutes(prisma));
 app.use("/", AccountsRoutes(prisma));

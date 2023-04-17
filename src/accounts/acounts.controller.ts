@@ -133,7 +133,8 @@ export const getAllAccounts = async (req: Request, res: Response) => {
   const totalPages = Math.ceil(totalRecords / pageSizeNumber);
   const currentPage = pageNumber > totalPages ? totalPages : pageNumber;
 
-  const skip = (currentPage - 1) * pageSizeNumber;
+  const skip = Math.max((currentPage - 1) * pageSizeNumber, 0);
+
   const accounts = await prisma.account.findMany({
     skip: skip,
     take: pageSizeNumber,
