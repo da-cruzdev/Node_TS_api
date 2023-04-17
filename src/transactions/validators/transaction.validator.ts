@@ -6,6 +6,11 @@ export const TransactionSchema = Joi.object({
   transactionType: Joi.string()
     .valid("credit", "debit", "transfert")
     .required(),
+  currency: Joi.string().valid("FCFA", "USD", "EURO").when("transactionType", {
+    is: "debit",
+    then: Joi.string().optional(),
+    otherwise: Joi.string().required(),
+  }),
   accountIbanEmitter: Joi.string().when("transactionType", {
     is: "debit",
     then: Joi.string().required(),

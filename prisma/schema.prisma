@@ -14,6 +14,7 @@ model Transaction {
   id                  Int      @id @default(autoincrement())
   amount              Float
   transactionType     String
+  currency String?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
   accountEmitter      Account? @relation(name: "Emitter", fields: [accountIbanEmitter], references: [iban])
@@ -25,7 +26,7 @@ model Transaction {
 model Account {
   iban                 String        @id @unique
   name                 String
-  email                String
+  email                String        @unique
   number               String        @unique
   balance              Float
   currency             String
