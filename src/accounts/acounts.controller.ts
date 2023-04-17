@@ -12,14 +12,18 @@ const prisma = new PrismaClient();
 
 export const createAccount = async (req: Request, res: Response) => {
   try {
-    const { name, email, number, balance, currency, bic, accountType } =
-      req.body;
+    const { name, email, number, balance, currency, bic } = req.body;
     const validateData = await accountSchema.validateAsync(
-      { name, email, number, balance, currency, bic, accountType },
+      { name, email, number, balance, currency, bic, accountType: "courant" },
       {
         abortEarly: false,
       }
     );
+    if (validateData.error) {
+      return res
+        .status(400)
+        .json({ error: validateData.error.details[0].message });
+    }
 
     const iban = `DE${uuidv4()}`;
     const newAccount = {
@@ -35,15 +39,8 @@ export const createAccount = async (req: Request, res: Response) => {
     const createdAccount = await prisma.account.create({ data: newAccount });
     res.status(200).json(createdAccount);
   } catch (error: any) {
-    if (error && error.details) {
-      const errors = error.details.reduce((acc: any, current: any) => {
-        acc[current.context.key] = current.message;
-        return acc;
-      }, {});
-      res.status(500).json({ error: "Account creation failed", errors });
-    } else {
-      res.status(500).json({ error: "Account creation failed", errors: null });
-    }
+    console.log(error);
+    res.status(500).json({ error: error });
   }
 };
 
@@ -92,7 +89,7 @@ export const createSubAccount = async (req: Request, res: Response) => {
     }
 
     let subAccountType;
-    if (accountType === "savings" || accountType === "frozen") {
+    if (accountType === "savings" || accountType === "blocked") {
       subAccountType = accountType;
     } else {
       return res
@@ -129,13 +126,18 @@ export const getAllAccounts = async (req: Request, res: Response) => {
   const pageNumber = parseInt(page as string) || 1;
   const pageSizeNumber = parseInt(pageSize as string) || 5;
 
-  const totalRecords = await prisma.account.count();
+  const totalRecords = await prisma.account.count({
+    where: { parentId: null },
+  });
   const totalPages = Math.ceil(totalRecords / pageSizeNumber);
   const currentPage = pageNumber > totalPages ? totalPages : pageNumber;
 
   const skip = Math.max((currentPage - 1) * pageSizeNumber, 0);
 
   const accounts = await prisma.account.findMany({
+    where: {
+      parentId: null,
+    },
     skip: skip,
     take: pageSizeNumber,
   });
@@ -228,8 +230,58 @@ export const unblockAccount = async (req: Request, res: Response) => {
       data: { accountType: "savings" },
     });
 
-    return { success: true, message: "Account unblocked successfully" };
-  } catch (error) {
-    throw new Error("Failed to unblock account");
+    return res.status(200).json({ message: "Account unblocked successfully" });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const deleteAccount = async (req: Request, res: Response) => {
+  try {
+    const { iban } = req.params;
+
+    const existingAccount = await prisma.account.findUnique({
+      where: { iban },
+    });
+    if (!existingAccount) {
+      return res.status(404).json({ error: "Account not found" });
+    }
+
+    if (existingAccount.accountType === "blocked") {
+      return res
+        .status(400)
+        .json({ error: "Blocked account cannot be deleted" });
+    }
+
+    await prisma.account.delete({ where: { iban } });
+
+    res.status(200).json({ message: "Account successfully deleted" });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const deleteSubAccount = async (req: Request, res: Response) => {
+  try {
+    const { iban } = req.params;
+
+    const existingSubAccount = await prisma.account.findUnique({
+      where: { iban },
+    });
+    if (!existingSubAccount) {
+      return res.status(404).json({ error: "Sub-account not found" });
+    }
+
+    if (existingSubAccount.accountType === "blocked") {
+      return res
+        .status(400)
+        .json({ error: "Blocked sub-account cannot be deleted" });
+    }
+
+    await prisma.account.delete({ where: { iban } });
+
+    res.status(200).json({ message: "Sub-account successfully deleted" });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
   }
 };

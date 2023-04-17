@@ -3,6 +3,8 @@ import { PrismaClient } from "@prisma/client";
 import {
   createAccount,
   createSubAccount,
+  deleteAccount,
+  deleteSubAccount,
   getAllAccounts,
   getOneAccount,
   getSubAccountByIban,
@@ -39,6 +41,10 @@ const AccountsRoutes = (prisma: PrismaClient): Router => {
     authMiddleware,
     unblockAccount
   );
+
+  router.delete("/accounts/:iban", authMiddleware, deleteAccount);
+
+  router.delete("/subaccounts/:iban", authMiddleware, deleteSubAccount);
 
   return router;
 };
