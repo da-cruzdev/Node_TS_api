@@ -1,0 +1,44 @@
+{
+  "compilerOptions": {
+    /* Basic Options */
+    "target": "es2018" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
+    "module": "commonjs" /* Specify module code generation: 'none', 'commonjs', 'amd', 'system', 'umd', 'es2015', 'es2020', or 'ESNext'. */,
+    "allowJs": true /* Allow JavaScript files to be compiled. */,
+    "strict": true /* Enable all strict type-checking options. */,
+    "esModuleInterop": true /* Allow default imports from modules with no default export. */,
+    "skipLibCheck": true /* Skip type checking of declaration files. */,
+    "forceConsistentCasingInFileNames": true /* Ensure that casing is consistent in file names. */,
+
+    /* Advanced Options */
+    "resolveJsonModule": true /* Include modules imported with '.json' extension. */,
+    "noEmit": true /* Do not emit output files. */,
+    "noEmitOnError": true /* Do not emit output if any errors were reported. */,
+    "rootDir": "./src" /* Specify the root folder within your source files. */,
+    "outDir": "./dist" /* Specify the output folder for compiled files. */,
+    "baseUrl": "./src" /* Specify the base path for module resolution. */,
+    "paths": {
+      /* Specify path mapping to resolve module names. */ "@app/*": ["app/*"],
+      "@config/*": ["config/*"],
+      "@controllers/*": ["controllers/*"],
+      "@middlewares/*": ["middlewares/*"],
+      "@models/*": ["models/*"],
+      "@routes/*": ["routes/*"],
+      "@services/*": ["services/*"],
+      "@utils/*": ["utils/*"]
+    },
+    "typeRoots": [
+      "./node_modules/@types"
+    ] /* Specify folder(s) containing type definitions. */,
+    "lib": [
+      "es2018",
+      "dom"
+    ] /* Specify library files to be included in the compilation. */
+  },
+  "include": [
+    "src/**/*.ts"
+  ] /* Specify the folders or files to be included in the compilation. */,
+  "exclude": [
+    "node_modules",
+    "dist"
+  ] /* Specify the folders or files to be excluded from the compilation. */
+}
