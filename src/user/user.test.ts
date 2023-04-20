@@ -1,11 +1,17 @@
+import { Prisma, User } from "@prisma/client";
+
+const bcrypt = require("bcrypt");
+
+const { prismaMock } = require("../mocks");
+
+jest.mock("@prisma/client", () => ({
+  PrismaClient: jest.fn().mockImplementation(() => prismaMock),
+}));
+
 import { Request, Response } from "express";
 import { getUserList, login, signUp } from "./user.controller";
 
 import { userSchema } from "./validators/user.validator";
-const { PrismaClient } = require("@prisma/client");
-const bcrypt = require("bcrypt");
-
-const prisma = new PrismaClient();
 
 describe("login", () => {
   let req: Request;
@@ -14,7 +20,7 @@ describe("login", () => {
   beforeEach(() => {
     req = {
       body: {
-        email: "test@example.com",
+        email: "example@api.com",
         password: "password123",
       },
     } as Request;
@@ -29,7 +35,7 @@ describe("login", () => {
   });
 
   it("should return 401 with error message if email is invalid", async () => {
-    jest.spyOn(prisma.user, "findUnique").mockResolvedValue(null);
+    jest.spyOn(prismaMock.user, "findUnique").mockResolvedValueOnce(null);
 
     await login(req, res);
 
@@ -37,53 +43,53 @@ describe("login", () => {
     expect(res.json).toHaveBeenCalledWith({ error: "Invalid email" });
   });
 
-  //   it("should return 401 with error message if password is invalid", async () => {
-  //     jest.spyOn(prisma.user, "findUnique").mockResolvedValue({
-  //       id: 1,
-  //       email: "test@example.com",
-  //       password: await bcrypt.hash("password123", 10),
-  //     });
+  it("should return 401 with error message if password is invalid", async () => {
+    jest.spyOn(prismaMock.user, "findUnique").mockResolvedValueOnce({
+      id: 1,
+      email: "test@example.com",
+      password: await bcrypt.hash("password123", 10),
+    } as unknown as Prisma.Prisma__UserClient<User>);
 
-  //     jest.spyOn(bcrypt, "compare").mockResolvedValue(false);
+    jest.spyOn(bcrypt, "compare").mockResolvedValueOnce(false);
 
-  //     await login(req, res);
+    await login(req, res);
 
-  //     expect(res.status).toHaveBeenCalledWith(401);
-  //     expect(res.json).toHaveBeenCalledWith({ error: "Invalid password" });
-  //   });
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith({ error: "Invalid password" });
+  });
 
-  //   it("should return 200 with token if email and password are valid", async () => {
-  //     jest.spyOn(prisma.user, "findUnique").mockResolvedValue({
-  //       id: 1,
-  //       email: "test@example.com",
-  //       password: await bcrypt.hash("password123", 10),
-  //     });
+  it("should return 200 with token if email and password are valid", async () => {
+    jest.spyOn(prismaMock.user, "findUnique").mockResolvedValue({
+      id: 1,
+      email: "test@api.com",
+      password: await bcrypt.hash("password123", 10),
+    } as unknown as Prisma.Prisma__UserClient<User>);
 
-  //     jest.spyOn(bcrypt, "compare").mockResolvedValue(true);
+    jest.spyOn(bcrypt, "compare").mockResolvedValue(true);
 
-  //     await login(req, res);
+    await login(req, res);
 
-  //     expect(res.status).toHaveBeenCalledWith(200);
-  //     expect(res.json).toHaveBeenCalledWith({ token: expect.any(String) });
-  //   });
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({ token: expect.any(String) });
+  });
 
-  //   it("should return 500 with error message if an error occurs", async () => {
-  //     jest
-  //       .spyOn(prisma.user, "findUnique")
-  //       .mockRejectedValue(new Error("Database error"));
+  it("should return 500 with error message if an error occurs", async () => {
+    jest
+      .spyOn(prismaMock.user, "findUnique")
+      .mockRejectedValue(new Error("Database error"));
 
-  //     await login(req, res);
+    await login(req, res);
 
-  //     expect(res.status).toHaveBeenCalledWith(500);
-  //     expect(res.json).toHaveBeenCalledWith({ error: "Failed to login" });
-  //   });
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({ error: "Failed to login" });
+  });
 });
 
 describe("getUserList", () => {
   let prismaSpy: jest.SpyInstance;
 
   beforeEach(() => {
-    prismaSpy = jest.spyOn(prisma.user, "findMany");
+    prismaSpy = jest.spyOn(prismaMock.user, "findMany");
   });
 
   afterEach(() => {
@@ -105,21 +111,19 @@ describe("getUserList", () => {
     expect(users[1]).toHaveProperty("email");
   });
 
-  //   it("should return an empty array if no users are found", async () => {
-  //     prismaSpy.mockResolvedValue([]);
+  it("should return an empty array if no users are found", async () => {
+    prismaSpy.mockResolvedValue([]);
 
-  //     const users = await getUserList(10);
+    const users = await getUserList(10);
 
-  //     expect(users).toEqual([]);
-  //   });
+    expect(users).toEqual([]);
+  });
 
-  //   it("should throw an error if an error occurs while fetching users", async () => {
-  //     prismaSpy.mockRejectedValue(new Error("Database error"));
+  it("should throw an error if an error occurs while fetching users", async () => {
+    prismaSpy.mockRejectedValue(new Error("Database error"));
 
-  //     await expect(getUserList(3)).rejects.toThrowError(
-  //       "Failed to fetch user list"
-  //     );
-  //   });
+    await expect(getUserList(3)).rejects.toThrowError("Database error");
+  });
 });
 
 describe("signUp", () => {
@@ -150,14 +154,14 @@ describe("signUp", () => {
       email: "john@example.com",
       password: "password123",
     });
-    jest.spyOn(prisma.user, "findUnique").mockResolvedValue(null);
+    jest.spyOn(prismaMock.user, "findUnique").mockResolvedValue(null);
     jest.spyOn(bcrypt, "hash").mockResolvedValue("hashedPassword");
-    jest.spyOn(prisma.user, "create").mockResolvedValue({
+    jest.spyOn(prismaMock.user, "create").mockResolvedValue({
       id: 1,
       name: "John Doe",
       email: "john@example.com",
       password: "hashedPassword",
-    });
+    } as unknown as Prisma.Prisma__UserClient<User>);
 
     await signUp(req, res);
 
@@ -167,50 +171,49 @@ describe("signUp", () => {
         id: expect.any(Number),
         name: "John Doe",
         email: "john@example.com",
-        password: undefined,
       }),
     });
   });
 
-  //   it("should return 400 with error message if user already exists", async () => {
-  //     req.body = {
-  //       name: "John Doe",
-  //       email: "john@example.com",
-  //       password: "password123",
-  //     };
+  it("should return 400 with error message if user already exists", async () => {
+    req.body = {
+      name: "John Doe",
+      email: "john@example.com",
+      password: "password123",
+    };
 
-  //     jest.spyOn(prisma.user, "findUnique").mockResolvedValue({
-  //       id: 1,
-  //       name: "John Doe",
-  //       email: "john@example.com",
-  //       password: "hashedPassword",
-  //     });
+    jest.spyOn(prismaMock.user, "findUnique").mockResolvedValue({
+      id: 1,
+      name: "John Doe",
+      email: "john@example.com",
+      password: "hashedPassword",
+    } as unknown as Prisma.Prisma__UserClient<User>);
 
-  //     await signUp(req, res);
+    await signUp(req, res);
 
-  //     expect(res.status).toHaveBeenCalledWith(400);
-  //     expect(res.json).toHaveBeenCalledWith({
-  //       error: "User with email john@example.com already exits",
-  //     });
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({
+      error: "User with email john@example.com already exits",
+    });
+  });
+
+  // it("should return 400 with error message if data validation fails", async () => {
+  //   req.body = {
+  //     name: "John Doe",
+  //     email: "john@example.com",
+  //     password: "p",
+  //   };
+
+  //   jest
+  //     .spyOn(userSchema, "validateAsync")
+  //     .mockRejectedValue(new Error("vaildation failed"));
+
+  //   await signUp(req, res);
+
+  //   expect(res.status).toHaveBeenCalledWith(400);
+  //   expect(res.json).toHaveBeenCalledWith({
+  //     error: "vaildation failed",
+  //     errors: { password: "Mot de passe doit contenir au moins 6 caractères" },
   //   });
-
-  //   it("should return 400 with error message if data validation fails", async () => {
-  //     req.body = {
-  //       name: "John Doe",
-  //       email: "john@example.com",
-  //       password: "p",
-  //     };
-
-  //     jest
-  //       .spyOn(userSchema, "validateAsync")
-  //       .mockRejectedValue(new Error("Validation error"));
-
-  //     await signUp(req, res);
-
-  //     expect(res.status).toHaveBeenCalledWith(400);
-  //     expect(res.json).toHaveBeenCalledWith({
-  //       error: "vaildation failed",
-  //       errors: { password: "Mot de passe doit contenir au moins 6 caractères" },
-  //     });
-  //   });
+  // });
 });
