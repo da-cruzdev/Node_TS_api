@@ -7,95 +7,6 @@ import TransactionData from "./dto/transaction.dto";
 
 const prisma = new PrismaClient();
 
-const convertCurrency = (amount: number, fromCurrency: string): number => {
-  const exchangeRates: Record<string, number> = {
-    EURO: 1,
-    USD: 1.2,
-    FCFA: 656,
-  };
-
-  if (!exchangeRates[fromCurrency]) {
-    throw new Error(`Currency ${fromCurrency} is not supported`);
-  }
-
-  const convertedAmount = amount / exchangeRates[fromCurrency];
-
-  return Math.round(convertedAmount * 100) / 100;
-};
-
-const validateTransactionData = (transactionData: TransactionData) => {
-  const validation = TransactionSchema.validate(transactionData, {
-    abortEarly: false,
-  });
-
-  if (validation.error) {
-    throw new Error(validation.error.details[0].message);
-  }
-};
-
-const creditTransaction = async (transactionData: any) => {
-  await prisma.account.update({
-    where: { iban: transactionData.accountIbanReceiver },
-    data: { balance: { increment: transactionData.amount } },
-  });
-};
-
-const debitTransaction = async (transactionData: any) => {
-  const accountData = await prisma.account.findUnique({
-    where: { iban: transactionData.accountIbanEmitter },
-  });
-
-  if (accountData && accountData.accountType === "blocked") {
-    throw new Error("emitter account blocked");
-  }
-
-  await prisma.account.update({
-    where: { iban: transactionData.accountIbanEmitter },
-    data: { balance: { decrement: transactionData.amount } },
-  });
-};
-
-const transferTransaction = async (transactionData: any) => {
-  const accountIbanEmitterData = await prisma.account.findUnique({
-    where: { iban: transactionData.accountIbanEmitter },
-  });
-
-  if (
-    accountIbanEmitterData &&
-    accountIbanEmitterData.accountType === "blocked"
-  ) {
-    throw new Error("emitter account blocked");
-  }
-
-  await prisma.account.update({
-    where: { iban: transactionData.accountIbanEmitter },
-    data: { balance: { decrement: transactionData.amount } },
-  });
-
-  await prisma.account.update({
-    where: { iban: transactionData.accountIbanReceiver },
-    data: { balance: { increment: transactionData.amount } },
-  });
-};
-
-const getAccountBalance = async (accountIban: string): Promise<number> => {
-  try {
-    const account = await prisma.account.findUnique({
-      where: {
-        iban: accountIban,
-      },
-    });
-
-    if (!account) {
-      throw new Error("Account not found");
-    }
-
-    return account.balance;
-  } catch (error: any) {
-    throw new Error(`Failed to get account balance: ${error.message}`);
-  }
-};
-
 export const createTransaction = async (req: Request, res: Response) => {
   try {
     const {
@@ -195,6 +106,123 @@ export const createTransaction = async (req: Request, res: Response) => {
   }
 };
 
+export const convertCurrency = (
+  amount: number,
+  fromCurrency: string
+): number => {
+  const exchangeRates: Record<string, number> = {
+    EURO: 1,
+    USD: 1.2,
+    FCFA: 656,
+  };
+
+  if (!exchangeRates[fromCurrency]) {
+    throw new Error(`Currency ${fromCurrency} is not supported`);
+  }
+
+  const convertedAmount = amount / exchangeRates[fromCurrency];
+
+  return Math.round(convertedAmount * 100) / 100;
+};
+
+export const validateTransactionData = (transactionData: TransactionData) => {
+  const validation = TransactionSchema.validate(transactionData, {
+    abortEarly: false,
+  });
+
+  if (validation.error) {
+    throw new Error(validation.error.details[0].message);
+  }
+};
+
+export const getAccountBalance = async (
+  accountIban: string
+): Promise<number> => {
+  try {
+    const account = await prisma.account.findUnique({
+      where: {
+        iban: accountIban,
+      },
+    });
+
+    if (!account) {
+      throw new Error("Account not found");
+    }
+
+    return account.balance;
+  } catch (error: any) {
+    throw new Error(`Failed to get account balance: ${error.message}`);
+  }
+};
+
+export const creditTransaction = async (transactionData: any) => {
+  const account = await prisma.account.findUnique({
+    where: { iban: transactionData.accountIbanReceiver },
+  });
+
+  if (!account) {
+    throw new Error("Account does not exist");
+  }
+
+  await prisma.account.update({
+    where: { iban: transactionData.accountIbanReceiver },
+    data: { balance: { increment: transactionData.amount } },
+  });
+};
+
+export const debitTransaction = async (transactionData: any) => {
+  const accountData = await prisma.account.findUnique({
+    where: { iban: transactionData.accountIbanEmitter },
+  });
+
+  if (!accountData) {
+    throw new Error("Account does not exist");
+  }
+
+  if (accountData && accountData.accountType === "blocked") {
+    throw new Error("emitter account blocked");
+  }
+
+  await prisma.account.update({
+    where: { iban: transactionData.accountIbanEmitter },
+    data: { balance: { decrement: transactionData.amount } },
+  });
+};
+
+export const transferTransaction = async (transactionData: any) => {
+  const accountIbanEmitterData = await prisma.account.findUnique({
+    where: { iban: transactionData.accountIbanEmitter },
+  });
+  const accountIbanReceiverData = await prisma.account.findUnique({
+    where: { iban: transactionData.accountIbanReceiver },
+  });
+
+  if (!accountIbanEmitterData) {
+    throw new Error("Emitter account does not exist");
+  }
+
+  if (!accountIbanReceiverData) {
+    throw new Error("Receiver account does not exist");
+  }
+
+  if (
+    accountIbanEmitterData.accountType === "blocked" ||
+    accountIbanEmitterData.balance < transactionData.amount
+  ) {
+    throw new Error("Emitter account has insufficient funds");
+  }
+
+  await prisma.account.update({
+    where: { iban: transactionData.accountIbanEmitter },
+    data: { balance: { decrement: transactionData.amount } },
+  });
+
+  await prisma.account.update({
+    where: { iban: transactionData.accountIbanReceiver },
+    data: { balance: { increment: transactionData.amount } },
+  });
+};
+
 export const getAllTransactions = async (req: Request, res: Response) => {
   const { page, pageSize } = req.query;
   const pageNumber = parseInt(page as string) || 1;
@@ -221,13 +249,15 @@ export const getAllTransactions = async (req: Request, res: Response) => {
   res.status(200).json(response);
 };
 
-export const getOneTransaction = async (id: number) => {
+export const getOneTransaction = async (req: Request, res: Response) => {
   try {
+    const id = +req.params.id;
     const transaction = await prisma.transaction.findUnique({ where: { id } });
 
-    if (!transaction) throw new Error(`Transaction with id ${id} not found`);
-    else return formatDataResponse(transaction, "Transaction");
+    if (!transaction)
+      res.status(404).json({ error: `Transaction with id ${id} not found` });
+    else return res.status(200).json(transaction);
   } catch (error) {
-    throw new Error(`Error to get  transaction`);
+    res.status(500).json({ error: `Error to get transaction` });
   }
 };
