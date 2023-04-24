@@ -1,6 +1,10 @@
 import { TransactionSchema } from "./transaction.validator";
 
-function validateTransaction(transaction) {
+function validateTransaction(transaction: {
+  accountIbanReceiver: string;
+  amount: number;
+  transactionType: string;
+}) {
   TransactionSchema;
   return TransactionSchema.validate(transaction);
 }
