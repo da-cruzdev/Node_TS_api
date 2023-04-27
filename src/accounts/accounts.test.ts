@@ -66,27 +66,6 @@ describe("createAccount", () => {
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith({ error: expect.any(String) });
   });
-
-  // it("should return a 500 error if something goes wrong with the server", async () => {
-  //   const serverError = new Error("Internal server error");
-
-  //   jest.spyOn(prismaMock.account, "create").mockRejectedValueOnce(serverError);
-
-  //   const validData = {
-  //     name: "John Doe",
-  //     email: "johndoe@example.com",
-  //     number: "+2250745896325",
-  //     balance: 1000,
-  //     currency: "EURO",
-  //     bic: "ABCDEF",
-  //   };
-  //   req.body = validData;
-
-  //   await createAccount(req, res);
-
-  //   expect(res.status).toHaveBeenCalledWith(500);
-  //   expect(res.json).toHaveBeenCalledWith({ error: serverError });
-  // });
 });
 
 describe("createSubAccount", () => {
@@ -119,7 +98,6 @@ describe("createSubAccount", () => {
       },
     });
 
-    // make a request to create a sub-account
     const req = {
       body: {
         accountIban: parentAccount.iban,
@@ -140,7 +118,6 @@ describe("createSubAccount", () => {
 
     await createSubAccount(req, res);
 
-    // check that the sub-account was created successfully
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -157,64 +134,64 @@ describe("createSubAccount", () => {
     );
   });
 
-  // it("should return an error with invalid data", async () => {
-  //   const req = {
-  //     body: {
-  //       accountIban: "DE1234567890",
-  //       name: "Jane Doe",
-  //       email: "janedoe@example.com",
-  //       number: "9876543210",
-  //       balance: -500,
-  //       currency: "EUR",
-  //       bic: "UVWXYZ",
-  //       accountType: "invalidType",
-  //     },
-  //   } as Request;
-  //   const res = {
-  //     status: jest.fn().mockReturnThis(),
-  //     json: jest.fn(),
-  //   } as unknown as Response;
-  //   await createSubAccount(req, res);
-  //   expect(res.status).toHaveBeenCalledWith(400);
-  //   expect(res.json).toHaveBeenCalled();
-  // });
+  it("should return an error with invalid data", async () => {
+    const req = {
+      body: {
+        accountIban: "DE1234567890",
+        name: "Jane Doe",
+        email: "janedoe@example.com",
+        number: "9876543210",
+        balance: -500,
+        currency: "EUR",
+        bic: "UVWXYZ",
+        accountType: "invalidType",
+      },
+    } as Request;
+    const res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    } as unknown as Response;
+    await createSubAccount(req, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalled();
+  });
 });
 
-// describe("getAllAccounts", () => {
-//   it("should return a list of accounts with pagination information", async () => {
-//     const mockAccounts = [
-//       {
-//         name: "John Doe",
-//         email: "johndoe@example.com",
-//         number: "1234567890",
-//         balance: -1000,
-//         currency: "USD",
-//         bic: "ABCDEF",
-//       },
-//     ];
+describe("getAllAccounts", () => {
+  it("should return a list of accounts with pagination information", async () => {
+    const mockAccounts = [
+      {
+        name: "John Doe",
+        email: "johndoe@example.com",
+        number: "1234567890",
+        balance: -1000,
+        currency: "USD",
+        bic: "ABCDEF",
+      },
+    ];
 
-//     prismaMock.account.findMany.mockResolvedValueOnce(mockAccounts);
-//     const req = {
-//       query: {
-//         page: "1",
-//         pageSize: "5",
-//       },
-//     } as unknown as Request;
-//     const res = {
-//       status: jest.fn().mockReturnThis(),
-//       json: jest.fn(),
-//     } as unknown as Response;
+    prismaMock.account.findMany.mockResolvedValueOnce(mockAccounts);
+    const req = {
+      query: {
+        page: "1",
+        pageSize: "5",
+      },
+    } as unknown as Request;
+    const res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    } as unknown as Response;
 
-//     prismaMock.account.count.mockResolvedValueOnce(mockAccounts.length);
-//     await getAllAccounts(req, res);
+    prismaMock.account.count.mockResolvedValueOnce(mockAccounts.length);
+    await getAllAccounts(req, res);
 
-//     expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.status).toHaveBeenCalledWith(200);
 
-//     expect(res.json).toHaveBeenCalledWith({
-//       totalRecords: expect.any(Number),
-//       totalPages: expect.any(Number),
-//       currentPage: expect.any(Number),
-//       accounts: expect.any(Array),
-//     });
-//   });
-// });
+    expect(res.json).toHaveBeenCalledWith({
+      totalRecords: expect.any(Number),
+      totalPages: expect.any(Number),
+      currentPage: expect.any(Number),
+      accounts: expect.any(Array),
+    });
+  });
+});
