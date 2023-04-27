@@ -4,8 +4,9 @@
   "description": "Node JS and TypeScript Api for Project 2_Aroli",
   "main": "index.js",
   "scripts": {
-    "test": "jest --verbose",
-    "dev": "nodemon dist/index.js"
+    "test": "jest --verbose dist/**/*.test.js",
+    "dev": "nodemon dist/index.js",
+    "build": "tsc && tsc --project tsconfig.test.json"
   },
   "keywords": [],
   "author": "",
