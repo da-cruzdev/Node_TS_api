@@ -1,84 +1,220 @@
+const { prismaMock } = require("../mocks");
+
+jest.mock("@prisma/client", () => ({
+  PrismaClient: jest.fn().mockImplementation(() => prismaMock),
+}));
+
 import { Request, Response } from "express";
-import { createAccount } from "./acounts.controller";
-import { PrismaClient } from "@prisma/client";
-import { v4 as uuidv4 } from "uuid";
+import {
+  createAccount,
+  createSubAccount,
+  getAllAccounts,
+} from "./acounts.controller";
 
-// const prisma = new PrismaClient()
+describe("createAccount", () => {
+  let req: Request;
+  let res: Response;
 
-// describe("createAccount", () => {
-//   let req: Partial<Request>;
-//   let res: Partial<Response>;
+  beforeEach(() => {
+    req = {} as Request;
+    res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    } as unknown as Response;
+  });
 
-//   beforeEach(() => {
-//     req = {
-//       body: {
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("should create an account successfully with valid data", async () => {
+    const validData = {
+      iban: "DE455679",
+      name: "John Doe",
+      email: "johndoe@example.com",
+      number: "+2250545896398",
+      balance: 1000,
+      currency: "EURO",
+      bic: "ABCDEF",
+    };
+    prismaMock.account.create.mockResolvedValueOnce(validData);
+
+    req.body = validData;
+
+    await createAccount(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+
+    expect(res.json).toHaveBeenCalledWith(validData);
+  });
+
+  it("should return a 400 error with invalid data", async () => {
+    const invalidData = {
+      name: "John Doe",
+      email: "johndoe@example.com",
+      number: "1234567890",
+      balance: -1000,
+      currency: "USD",
+      bic: "ABCDEF",
+    };
+
+    prismaMock.account.create.mockRejectedValueOnce(invalidData);
+    req.body = invalidData;
+
+    await createAccount(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ error: expect.any(String) });
+  });
+
+  // it("should return a 500 error if something goes wrong with the server", async () => {
+  //   const serverError = new Error("Internal server error");
+
+  //   jest.spyOn(prismaMock.account, "create").mockRejectedValueOnce(serverError);
+
+  //   const validData = {
+  //     name: "John Doe",
+  //     email: "johndoe@example.com",
+  //     number: "+2250745896325",
+  //     balance: 1000,
+  //     currency: "EURO",
+  //     bic: "ABCDEF",
+  //   };
+  //   req.body = validData;
+
+  //   await createAccount(req, res);
+
+  //   expect(res.status).toHaveBeenCalledWith(500);
+  //   expect(res.json).toHaveBeenCalledWith({ error: serverError });
+  // });
+});
+
+describe("createSubAccount", () => {
+  let parentAccount: { iban: string };
+
+  beforeAll(async () => {
+    parentAccount = await prismaMock.account.create({
+      data: {
+        name: "John Doe",
+        email: "johndoe@example.com",
+        number: "+22501234567",
+        balance: 1000,
+        currency: "EURO",
+        bic: "ABCDEF",
+        accountType: "courant",
+      },
+    });
+  });
+
+  it("should create a sub-account successfully with valid data", async () => {
+    const parentAccount = await prismaMock.account.create({
+      data: {
+        name: "Main Account",
+        email: "main_account@example.com",
+        number: "123456",
+        balance: 1000,
+        currency: "USD",
+        bic: "ABCDEF",
+        accountType: "courant",
+      },
+    });
+
+    // make a request to create a sub-account
+    const req = {
+      body: {
+        accountIban: parentAccount.iban,
+        name: "Sub Account",
+        email: "sub_account@example.com",
+        number: "789012",
+        balance: 500,
+        currency: "USD",
+        bic: "UVWXYZ",
+        accountType: "savings",
+      },
+    } as Request;
+
+    const res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    } as unknown as Response;
+
+    await createSubAccount(req, res);
+
+    // check that the sub-account was created successfully
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        iban: expect.any(String),
+        name: "Sub Account",
+        email: "sub_account@example.com",
+        number: "789012",
+        balance: 500,
+        currency: "USD",
+        bic: "UVWXYZ",
+        accountType: "savings",
+        parentId: parentAccount.iban,
+      })
+    );
+  });
+
+  // it("should return an error with invalid data", async () => {
+  //   const req = {
+  //     body: {
+  //       accountIban: "DE1234567890",
+  //       name: "Jane Doe",
+  //       email: "janedoe@example.com",
+  //       number: "9876543210",
+  //       balance: -500,
+  //       currency: "EUR",
+  //       bic: "UVWXYZ",
+  //       accountType: "invalidType",
+  //     },
+  //   } as Request;
+  //   const res = {
+  //     status: jest.fn().mockReturnThis(),
+  //     json: jest.fn(),
+  //   } as unknown as Response;
+  //   await createSubAccount(req, res);
+  //   expect(res.status).toHaveBeenCalledWith(400);
+  //   expect(res.json).toHaveBeenCalled();
+  // });
+});
+
+// describe("getAllAccounts", () => {
+//   it("should return a list of accounts with pagination information", async () => {
+//     const mockAccounts = [
+//       {
 //         name: "John Doe",
-//         email: "john.doe@example.com",
+//         email: "johndoe@example.com",
 //         number: "1234567890",
-//         balance: 1000,
+//         balance: -1000,
 //         currency: "USD",
-//         bic: "ABCD1234",
+//         bic: "ABCDEF",
 //       },
-//     };
-//     res = {
+//     ];
+
+//     prismaMock.account.findMany.mockResolvedValueOnce(mockAccounts);
+//     const req = {
+//       query: {
+//         page: "1",
+//         pageSize: "5",
+//       },
+//     } as unknown as Request;
+//     const res = {
 //       status: jest.fn().mockReturnThis(),
 //       json: jest.fn(),
-//     };
-//   });
+//     } as unknown as Response;
 
-//   afterEach(() => {
-//     jest.resetAllMocks();
-//   });
+//     prismaMock.account.count.mockResolvedValueOnce(mockAccounts.length);
+//     await getAllAccounts(req, res);
 
-//   it("should create an account with valid data and return 200 status code", async () => {
-//     const mockedUuidv4 = "mocked-uuid";
-//     const mockedCreatedAccount = {
-//       id: 1,
-//       iban: `DE${mockedUuidv4}`,
-//       name: req.body.name,
-//       email: req.body.email,
-//       number: req.body.number,
-//       balance: req.body.balance,
-//       currency: req.body.currency,
-//       bic: req.body.bic,
-//       accountType: "courant",
-//     };
-//     jest.spyOn(uuidv4, 'v4').mockReturnValue(mockedUuidv4);
-//     jest
-//       .spyOn(prisma.account, "create")
-//       .mockResolvedValue(mockedCreatedAccount);
-
-//     await createAccount(req as Request, res as Response);
-
-//     expect(uuidv4.v4).toHaveBeenCalled();
-//     expect(prisma.account.create).toHaveBeenCalledWith({
-//       data: mockedCreatedAccount,
-//     });
 //     expect(res.status).toHaveBeenCalledWith(200);
-//     expect(res.json).toHaveBeenCalledWith(mockedCreatedAccount);
-//   });
 
-//   it("should return 400 status code with error message for invalid data", async () => {
-//     req.body.name = "";
-
-//     await createAccount(req as Request, res as Response);
-
-//     expect(res.status).toHaveBeenCalledWith(400);
 //     expect(res.json).toHaveBeenCalledWith({
-//       error: expect.any(String),
-//     });
-//   });
-
-//   it("should return 500 status code with error message for server error", async () => {
-//     jest
-//       .spyOn(prisma.account, "create")
-//       .mockRejectedValue(new Error("Mocked error"));
-
-//     await createAccount(req as Request, res as Response);
-
-//     expect(res.status).toHaveBeenCalledWith(500);
-//     expect(res.json).toHaveBeenCalledWith({
-//       error: "Mocked error",
+//       totalRecords: expect.any(Number),
+//       totalPages: expect.any(Number),
+//       currentPage: expect.any(Number),
+//       accounts: expect.any(Array),
 //     });
 //   });
 // });

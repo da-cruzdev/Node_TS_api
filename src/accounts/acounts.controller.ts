@@ -19,13 +19,9 @@ export const createAccount = async (req: Request, res: Response) => {
         abortEarly: false,
       }
     );
-    if (validateData.error) {
-      return res
-        .status(400)
-        .json({ error: validateData.error.details[0].message });
-    }
 
-    const iban = `DE${uuidv4()}`;
+    const ibanPrefix = "CI";
+    const iban = `${ibanPrefix}${uuidv4()}`;
     const newAccount = {
       iban,
       name: validateData.name,
@@ -36,11 +32,11 @@ export const createAccount = async (req: Request, res: Response) => {
       bic: validateData.bic,
       accountType: validateData.accountType,
     };
+
     const createdAccount = await prisma.account.create({ data: newAccount });
     res.status(200).json(createdAccount);
   } catch (error: any) {
-    console.log(error);
-    res.status(500).json({ error: error });
+    res.status(400).json({ error: error.details[0].message });
   }
 };
 
@@ -97,7 +93,8 @@ export const createSubAccount = async (req: Request, res: Response) => {
         .json({ error: "Invalid account type for sub account" });
     }
 
-    const iban = `DE${uuidv4()}`;
+    const ibanPrefix = "CI";
+    const iban = `${ibanPrefix}${uuidv4()}`;
     const newSubAccount = {
       iban,
       name,
@@ -231,6 +228,68 @@ export const unblockAccount = async (req: Request, res: Response) => {
     });
 
     return res.status(200).json({ message: "Account unblocked successfully" });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const updateAccount = async (req: Request, res: Response) => {
+  try {
+    const { iban, name, email, number, balance, currency, bic, accountType } =
+      req.body;
+
+    const validationResult = accountSchema.validate(
+      {
+        name,
+        email,
+        number,
+        balance,
+        currency,
+        bic,
+        accountType,
+      },
+      { abortEarly: false }
+    );
+    if (validationResult.error) {
+      return res
+        .status(400)
+        .json({ error: validationResult.error.details[0].message });
+    }
+
+    const existingAccount = await prisma.account.findUnique({
+      where: { iban },
+    });
+    if (!existingAccount) {
+      return res.status(404).json({ error: "Account not found" });
+    }
+
+    if (existingAccount.accountType === "blocked") {
+      return res
+        .status(400)
+        .json({ error: "Blocked account cannot be updated" });
+    }
+
+    let updatedAccountType;
+    if (accountType === "savings" || accountType === "blocked") {
+      updatedAccountType = accountType;
+    } else {
+      return res.status(400).json({ error: "Invalid account type for update" });
+    }
+
+    const updatedAccount = await prisma.account.update({
+      where: { iban },
+      data: {
+        name,
+        email,
+        number,
+        balance,
+        currency,
+        bic,
+        accountType: updatedAccountType,
+      },
+    });
+
+    res.status(200).json(updatedAccount);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

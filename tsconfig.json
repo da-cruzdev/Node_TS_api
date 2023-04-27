@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    /* Basic Options */
     "target": "es2018" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
     "module": "commonjs" /* Specify module code generation: 'none', 'commonjs', 'amd', 'system', 'umd', 'es2015', 'es2020', or 'ESNext'. */,
     "allowJs": true /* Allow JavaScript files to be compiled. */,
@@ -34,11 +33,6 @@
       "dom"
     ] /* Specify library files to be included in the compilation. */
   },
-  "include": [
-    "src/**/*.ts"
-  ] /* Specify the folders or files to be included in the compilation. */,
-  "exclude": [
-    "node_modules",
-    "dist"
-  ] /* Specify the folders or files to be excluded from the compilation. */
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
 }
