@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "jest --verbose",
-    "dev": "nodemon src/index.ts"
+    "dev": "nodemon dist/index.js"
   },
   "keywords": [],
   "author": "",

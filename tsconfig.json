@@ -1,22 +1,20 @@
 {
   "compilerOptions": {
-    "target": "es2018" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
-    "module": "commonjs" /* Specify module code generation: 'none', 'commonjs', 'amd', 'system', 'umd', 'es2015', 'es2020', or 'ESNext'. */,
-    "allowJs": true /* Allow JavaScript files to be compiled. */,
-    "strict": true /* Enable all strict type-checking options. */,
-    "esModuleInterop": true /* Allow default imports from modules with no default export. */,
-    "skipLibCheck": true /* Skip type checking of declaration files. */,
-    "forceConsistentCasingInFileNames": true /* Ensure that casing is consistent in file names. */,
+    "target": "es6",
+    "module": "commonjs",
+    "allowJs": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
 
-    /* Advanced Options */
-    "resolveJsonModule": true /* Include modules imported with '.json' extension. */,
-    "noEmit": true /* Do not emit output files. */,
-    "noEmitOnError": true /* Do not emit output if any errors were reported. */,
-    "rootDir": "./src" /* Specify the root folder within your source files. */,
-    "outDir": "./dist" /* Specify the output folder for compiled files. */,
-    "baseUrl": "./src" /* Specify the base path for module resolution. */,
+    "resolveJsonModule": true,
+    "noEmitOnError": true,
+    "rootDir": "src",
+    "outDir": "dist",
+    "baseUrl": "src",
     "paths": {
-      /* Specify path mapping to resolve module names. */ "@app/*": ["app/*"],
+      "@app/*": ["app/*"],
       "@config/*": ["config/*"],
       "@controllers/*": ["controllers/*"],
       "@middlewares/*": ["middlewares/*"],
@@ -25,14 +23,8 @@
       "@services/*": ["services/*"],
       "@utils/*": ["utils/*"]
     },
-    "typeRoots": [
-      "./node_modules/@types"
-    ] /* Specify folder(s) containing type definitions. */,
-    "lib": [
-      "es2018",
-      "dom"
-    ] /* Specify library files to be included in the compilation. */
+    "typeRoots": ["./node_modules/@types"],
+    "lib": ["es2018", "dom"]
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/**/*.ts"]
 }
