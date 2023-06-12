@@ -6,13 +6,14 @@ import { PrismaClient } from "@prisma/client";
 import AccountsRoutes from "./accounts/accounts.route";
 import TransactionsRoutes from "./transactions/transactions.route";
 import { errorHandler } from "./middleware/errorHandler.middleware";
+import { createSuperAdmin } from "./utils/db.server";
 
 const prisma = new PrismaClient();
 
 dotenv.config();
 
 if (!process.env.PORT) {
-  process.exit();
+    process.exit();
 }
 
 const port: number = parseInt(process.env.PORT as string, 10);
@@ -28,6 +29,13 @@ app.use("/", UserRoutes(prisma));
 app.use("/", AccountsRoutes(prisma));
 app.use("/", TransactionsRoutes(prisma));
 
-app.listen(port, () => {
-  console.log(`Listennig on port ${port}`);
-});
+createSuperAdmin(process.env.SUPER_ADMIN_EMAIL)
+    .then(() => {
+        app.listen(port, () => {
+            console.log(`Listening on http://localhost:${port}`);
+        });
+    })
+    .catch((error) => {
+        console.error("Error creating super admin:", error);
+        process.exit(1); // Quit the application if there is an error creating the super admin
+    });
