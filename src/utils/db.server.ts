@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcrypt";
 
 let db: PrismaClient;
 
@@ -12,11 +13,12 @@ async function createSuperAdmin(email: any) {
             where: { email: email },
         });
         if (!existingAdmin) {
+            const password = await bcrypt.hash("azertyuiop", 10);
             const superAdmin = await global.__db?.user.create({
                 data: {
                     name: "admin",
                     email: "superadmin@gmail.com",
-                    password: "azertyuiop",
+                    password: password,
                 },
             });
 

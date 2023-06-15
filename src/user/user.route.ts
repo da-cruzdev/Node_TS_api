@@ -1,22 +1,26 @@
-import express, { Router } from "express";
-import { PrismaClient } from "@prisma/client";
-import { getUserList, login, signUp } from "./user.controller";
+import express, { Router } from "express"
+import { PrismaClient } from "@prisma/client"
+import { verifyEmail, getUserList, login, signUp, resetPassword } from "./user.controller"
 
 const UserRoutes = (prisma: PrismaClient): Router => {
-    const router = express.Router();
+  const router = express.Router()
 
-    router.post("/auth/create", signUp);
+  router.post("/auth/create", signUp)
 
-    router.post("/auth/login", login);
+  router.post("/auth/login", login)
 
-    router.get("/admin/list", async (req, res) => {
-        const { limit } = req.query;
+  router.post("/auth/forget-password", verifyEmail)
 
-        const users = await getUserList(Number(limit));
-        res.status(200).json(users);
-    });
+  router.post("/auth/reset-password", resetPassword)
 
-    return router;
-};
+  router.get("/admin/list", async (req, res) => {
+    const { limit } = req.query
 
-export default UserRoutes;
+    const users = await getUserList(Number(limit))
+    res.status(200).json(users)
+  })
+
+  return router
+}
+
+export default UserRoutes
