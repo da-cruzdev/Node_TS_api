@@ -1,17 +1,22 @@
 import express, { Router } from "express"
 import { PrismaClient } from "@prisma/client"
-import { verifyEmail, getUserList, login, signUp, resetPassword } from "./user.controller"
+import { verifyEmail, getUserList, login, signUp, resetPassword, logout, getUserById } from "./user.controller"
+import { authMiddleware } from "./middlewares/auth.middleware"
 
 const UserRoutes = (prisma: PrismaClient): Router => {
   const router = express.Router()
 
-  router.post("/auth/create", signUp)
+  router.post("/auth/signup", signUp)
 
   router.post("/auth/login", login)
+
+  router.post("/auth/login", authMiddleware, logout)
 
   router.post("/auth/forget-password", verifyEmail)
 
   router.post("/auth/reset-password", resetPassword)
+
+  router.get("/user", authMiddleware, getUserById)
 
   router.get("/admin/list", async (req, res) => {
     const { limit } = req.query

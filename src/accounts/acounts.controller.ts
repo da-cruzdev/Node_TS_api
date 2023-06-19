@@ -1,27 +1,32 @@
-import { PrismaClient } from "@prisma/client";
-import { Response, Request } from "express";
-import { v4 as uuidv4 } from "uuid";
-import { accountSchema } from "./validators/account.validator";
-import { Prisma } from "@prisma/client";
+import { PrismaClient } from "@prisma/client"
+import { Response, Request } from "express"
+import { v4 as uuidv4 } from "uuid"
+import { accountSchema } from "./validators/account.validator"
+import { Prisma } from "@prisma/client"
 
 type AccountWhereInputWithParentId = Prisma.AccountWhereInput & {
-  parentId?: string;
-};
+  parentId?: string
+}
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient()
+
+export const generateIban = (): string => {
+  const ibanPrefix = "CI"
+  const iban = `${ibanPrefix}${uuidv4()}`
+  return iban
+}
 
 export const createAccount = async (req: Request, res: Response) => {
   try {
-    const { name, email, number, balance, currency, bic } = req.body;
+    const { name, email, number, balance, currency, bic } = req.body
     const validateData = await accountSchema.validateAsync(
-      { name, email, number, balance, currency, bic, accountType: "courant" },
+      { name, email, number, balance, currency, bic, accountType: "current" },
       {
         abortEarly: false,
-      }
-    );
+      },
+    )
 
-    const ibanPrefix = "CI";
-    const iban = `${ibanPrefix}${uuidv4()}`;
+    const iban = generateIban()
     const newAccount = {
       iban,
       name: validateData.name,
@@ -31,27 +36,18 @@ export const createAccount = async (req: Request, res: Response) => {
       currency: validateData.currency,
       bic: validateData.bic,
       accountType: validateData.accountType,
-    };
+    }
 
-    const createdAccount = await prisma.account.create({ data: newAccount });
-    res.status(200).json(createdAccount);
+    const createdAccount = await prisma.account.create({ data: newAccount })
+    res.status(200).json(createdAccount)
   } catch (error: any) {
-    res.status(400).json({ error: error.details[0].message });
+    res.status(400).json({ error: error.details[0].message })
   }
-};
+}
 
 export const createSubAccount = async (req: Request, res: Response) => {
   try {
-    const {
-      accountIban,
-      name,
-      email,
-      number,
-      balance,
-      currency,
-      bic,
-      accountType,
-    } = req.body;
+    const { accountIban, name, email, number, balance, currency, bic, accountType } = req.body
 
     const validationResult = accountSchema.validate(
       {
@@ -63,38 +59,32 @@ export const createSubAccount = async (req: Request, res: Response) => {
         bic,
         accountType,
       },
-      { abortEarly: false }
-    );
+      { abortEarly: false },
+    )
     if (validationResult.error) {
-      return res
-        .status(400)
-        .json({ error: validationResult.error.details[0].message });
+      return res.status(400).json({ error: validationResult.error.details[0].message })
     }
 
     const mainAccount = await prisma.account.findUnique({
       where: { iban: accountIban },
-    });
+    })
     if (!mainAccount) {
-      return res.status(404).json({ error: "Main account not found" });
+      return res.status(404).json({ error: "Main account not found" })
     }
 
     if (mainAccount.accountType !== "courant") {
-      return res
-        .status(400)
-        .json({ error: "Main account must be of type courant" });
+      return res.status(400).json({ error: "Main account must be of type courant" })
     }
 
-    let subAccountType;
+    let subAccountType
     if (accountType === "savings" || accountType === "blocked") {
-      subAccountType = accountType;
+      subAccountType = accountType
     } else {
-      return res
-        .status(400)
-        .json({ error: "Invalid account type for sub account" });
+      return res.status(400).json({ error: "Invalid account type for sub account" })
     }
 
-    const ibanPrefix = "CI";
-    const iban = `${ibanPrefix}${uuidv4()}`;
+    const ibanPrefix = "CI"
+    const iban = `${ibanPrefix}${uuidv4()}`
     const newSubAccount = {
       iban,
       name,
@@ -105,31 +95,31 @@ export const createSubAccount = async (req: Request, res: Response) => {
       bic,
       accountType: subAccountType,
       parentId: accountIban,
-    };
+    }
     const createdSubAccount = await prisma.account.create({
       data: newSubAccount,
-    });
+    })
 
-    res.status(200).json(createdSubAccount);
+    res.status(200).json(createdSubAccount)
   } catch (error: any) {
     res.status(500).json({
       error: `Please ${error.meta.target[0]} already exists...Enter another one`,
-    });
+    })
   }
-};
+}
 
 export const getAllAccounts = async (req: Request, res: Response) => {
-  const { page, pageSize } = req.query;
-  const pageNumber = parseInt(page as string) || 1;
-  const pageSizeNumber = parseInt(pageSize as string) || 5;
+  const { page, pageSize } = req.query
+  const pageNumber = parseInt(page as string) || 1
+  const pageSizeNumber = parseInt(pageSize as string) || 5
 
   const totalRecords = await prisma.account.count({
     where: { parentId: null },
-  });
-  const totalPages = Math.ceil(totalRecords / pageSizeNumber);
-  const currentPage = pageNumber > totalPages ? totalPages : pageNumber;
+  })
+  const totalPages = Math.ceil(totalRecords / pageSizeNumber)
+  const currentPage = pageNumber > totalPages ? totalPages : pageNumber
 
-  const skip = Math.max((currentPage - 1) * pageSizeNumber, 0);
+  const skip = Math.max((currentPage - 1) * pageSizeNumber, 0)
 
   const accounts = await prisma.account.findMany({
     where: {
@@ -137,143 +127,151 @@ export const getAllAccounts = async (req: Request, res: Response) => {
     },
     skip: skip,
     take: pageSizeNumber,
-  });
+  })
 
   const response = {
     totalRecords: totalRecords,
     totalPages: totalPages,
     currentPage: currentPage,
     accounts: accounts,
-  };
+  }
 
-  res.status(200).json(response);
-};
+  res.status(200).json(response)
+}
+
+export const getUserAccount = async (req: Request, res: Response) => {
+  try {
+    const userId = +req.params.id
+
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    if (!user) {
+      res.status(404).json({ error: "Utilisateur introuvable" })
+    }
+
+    const userAccounts = await prisma.account.findFirst({ where: { userId } })
+
+    res.status(200).json(userAccounts)
+  } catch (error) {
+    res.status(500).json({ error: "Erreur survenue lors de la récupération des comptes" })
+  }
+}
 
 export const getOneAccount = async (req: Request, res: Response) => {
   try {
-    const { iban } = req.params;
-    const account = await prisma.account.findUnique({ where: { iban } });
-    if (!account)
-      res.status(404).json({ error: `Account with iban ${iban} not found` });
-    return res.status(200).json(account);
+    const { iban } = req.params
+    const account = await prisma.account.findUnique({ where: { iban } })
+    if (!account) res.status(404).json({ error: `Account with iban ${iban} not found` })
+    return res.status(200).json(account)
   } catch (error) {
-    res.status(500).json({ error });
+    res.status(500).json({ error })
   }
-};
+}
 
 export const getSubAccountsByParentId = async (req: Request, res: Response) => {
   try {
-    const { iban } = req.params;
+    const { iban } = req.params
 
     const parentAccount = await prisma.account.findUnique({
       where: {
         iban,
       },
-    });
+    })
     if (!parentAccount) {
-      res.status(404).json({ error: "Parent account not found" });
+      res.status(404).json({ error: "Parent account not found" })
     }
     const subAccounts = await prisma.account.findMany({
       where: {
         parentId: iban,
       } as AccountWhereInputWithParentId,
-    });
+    })
 
-    res.status(200).json(subAccounts);
+    res.status(200).json(subAccounts)
   } catch (error: any) {
-    res
-      .status(500)
-      .json({ error: "Failed to get sub-accounts", message: error.message });
+    res.status(500).json({ error: "Failed to get sub-accounts", message: error.message })
   }
-};
+}
 
 export const getSubAccountByIban = async (req: Request, res: Response) => {
   try {
-    const { iban } = req.params;
+    const { iban } = req.params
 
     const subAccount = await prisma.account.findUnique({
       where: { iban },
-    });
+    })
 
     if (!subAccount) {
-      return res.status(404).json({ error: "Sub-account not found" });
+      return res.status(404).json({ error: "Sub-account not found" })
     }
 
-    res.status(200).json(subAccount);
+    res.status(200).json(subAccount)
   } catch (error: any) {
     res.status(500).json({
       error: "Failed to get sub-account",
-    });
+    })
   }
-};
+}
 
 export const unblockAccount = async (req: Request, res: Response) => {
   try {
-    const { iban } = req.params;
+    const { iban } = req.params
     const accountData = await prisma.account.findUnique({
       where: { iban },
-    });
+    })
 
     if (!accountData) {
-      throw new Error("Account not found");
+      throw new Error("Account not found")
     }
 
     if (accountData.accountType !== "blocked") {
-      throw new Error("Account is not blocked");
+      throw new Error("Account is not blocked")
     }
 
     await prisma.account.update({
       where: { iban },
       data: { accountType: "savings" },
-    });
+    })
 
-    return res.status(200).json({ message: "Account unblocked successfully" });
+    return res.status(200).json({ message: "Account unblocked successfully" })
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message })
   }
-};
+}
 
 export const updateAccount = async (req: Request, res: Response) => {
   try {
-    const { iban, name, email, number, balance, currency, bic, accountType } =
-      req.body;
+    const { iban, name, email, number, balance, currency, bic, accountType } = req.body
 
     const validationResult = accountSchema.validate(
       {
         name,
         email,
-        number,
         balance,
         currency,
         bic,
         accountType,
       },
-      { abortEarly: false }
-    );
+      { abortEarly: false },
+    )
     if (validationResult.error) {
-      return res
-        .status(400)
-        .json({ error: validationResult.error.details[0].message });
+      return res.status(400).json({ error: validationResult.error.details[0].message })
     }
 
     const existingAccount = await prisma.account.findUnique({
       where: { iban },
-    });
+    })
     if (!existingAccount) {
-      return res.status(404).json({ error: "Account not found" });
+      return res.status(404).json({ error: "Account not found" })
     }
 
     if (existingAccount.accountType === "blocked") {
-      return res
-        .status(400)
-        .json({ error: "Blocked account cannot be updated" });
+      return res.status(400).json({ error: "Blocked account cannot be updated" })
     }
 
-    let updatedAccountType;
+    let updatedAccountType
     if (accountType === "savings" || accountType === "blocked") {
-      updatedAccountType = accountType;
+      updatedAccountType = accountType
     } else {
-      return res.status(400).json({ error: "Invalid account type for update" });
+      return res.status(400).json({ error: "Invalid account type for update" })
     }
 
     const updatedAccount = await prisma.account.update({
@@ -281,66 +279,61 @@ export const updateAccount = async (req: Request, res: Response) => {
       data: {
         name,
         email,
-        number,
         balance,
         currency,
         bic,
         accountType: updatedAccountType,
       },
-    });
+    })
 
-    res.status(200).json(updatedAccount);
+    res.status(200).json(updatedAccount)
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message })
   }
-};
+}
 
 export const deleteAccount = async (req: Request, res: Response) => {
   try {
-    const { iban } = req.params;
+    const { iban } = req.params
 
     const existingAccount = await prisma.account.findUnique({
       where: { iban },
-    });
+    })
     if (!existingAccount) {
-      return res.status(404).json({ error: "Account not found" });
+      return res.status(404).json({ error: "Account not found" })
     }
 
     if (existingAccount.accountType === "blocked") {
-      return res
-        .status(400)
-        .json({ error: "Blocked account cannot be deleted" });
+      return res.status(400).json({ error: "Blocked account cannot be deleted" })
     }
 
-    await prisma.account.delete({ where: { iban } });
+    await prisma.account.delete({ where: { iban } })
 
-    res.status(200).json({ message: "Account successfully deleted" });
+    res.status(200).json({ message: "Account successfully deleted" })
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message })
   }
-};
+}
 
 export const deleteSubAccount = async (req: Request, res: Response) => {
   try {
-    const { iban } = req.params;
+    const { iban } = req.params
 
     const existingSubAccount = await prisma.account.findUnique({
       where: { iban },
-    });
+    })
     if (!existingSubAccount) {
-      return res.status(404).json({ error: "Sub-account not found" });
+      return res.status(404).json({ error: "Sub-account not found" })
     }
 
     if (existingSubAccount.accountType === "blocked") {
-      return res
-        .status(400)
-        .json({ error: "Blocked sub-account cannot be deleted" });
+      return res.status(400).json({ error: "Blocked sub-account cannot be deleted" })
     }
 
-    await prisma.account.delete({ where: { iban } });
+    await prisma.account.delete({ where: { iban } })
 
-    res.status(200).json({ message: "Sub-account successfully deleted" });
+    res.status(200).json({ message: "Sub-account successfully deleted" })
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message })
   }
-};
+}

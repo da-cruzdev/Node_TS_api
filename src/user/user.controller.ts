@@ -1,10 +1,14 @@
 import { PrismaClient } from "@prisma/client"
 import { Response, Request } from "express"
+import { RequestHandler } from "express"
+
 import { CreateUserDTO, LoginDTO } from "./dto/user.dto"
 import { userSchema } from "./validators/user.validator"
 import bcrypt from "bcrypt"
 import { generateToken } from "./token/createToken"
 import { generate } from "randomstring"
+import { generateIban } from "../accounts/acounts.controller"
+import { log } from "console"
 
 const prisma = new PrismaClient()
 
@@ -32,10 +36,27 @@ export const signUp = async (req: Request, res: Response) => {
         password: hashedPassword,
       },
     })
-    const token = generateToken(newUser)
-    const user = { ...newUser, password: undefined }
 
-    res.status(200).json({ newUser: user, token: token, success: true })
+    const iban = generateIban()
+    const bic = generateIban()
+    const newAccount = {
+      iban,
+      name: validateData.name,
+      email: validateData.email,
+      balance: 0,
+      currency: "XOF",
+      bic,
+      accountType: "current",
+      userId: newUser.id,
+    }
+
+    const createdAccount = await prisma.account.create({ data: newAccount })
+
+    const token = generateToken(newUser)
+
+    const user = { ...newUser, password: undefined, token: token }
+
+    res.status(200).json({ user, createdAccount })
   } catch (error: any) {
     if (error && error.details) {
       const errors = error.details.reduce((acc: any, current: any) => {
@@ -43,6 +64,10 @@ export const signUp = async (req: Request, res: Response) => {
         return acc
       }, {})
       res.status(400).json({ error: "Erreur de validation", errors, success: false })
+    } else {
+      console.log(error)
+
+      res.status(500).json({ error: "Une erreur est survenue lors de la création du compte" })
     }
   }
 }
@@ -68,6 +93,24 @@ export const login = async (req: Request, res: Response) => {
     res.status(200).json({ token: token })
   } catch (error) {
     res.status(500).json({ error: "Erreur de connection.....!!!" })
+  }
+}
+
+export const logout = async (req: Request, res: Response) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1]
+
+    if (!token) {
+      return res.status(401).json({ error: "Authorization header missing" })
+    }
+
+    const user = await prisma.user.findFirst({ where: { token: token } })
+    if (user) {
+      user.token = ""
+    }
+    res.status(200).json({ message: "Déconnexion réussie" })
+  } catch (error) {
+    res.status(500).json({ error: "Une erreur est survenue lors de la déconnexion" })
   }
 }
 
@@ -128,4 +171,21 @@ export const getUserList = async (limit: number) => {
   })
 
   return users
+}
+
+export const getUserById: RequestHandler = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, email: true },
+    })
+    if (!user) {
+      return res.status(404).json({ error: "Utilisateur introuvable" })
+    }
+    res.status(200).json({ user })
+  } catch (error) {
+    res.status(500).json({ error: "Une erreur est survenue lors de la récupération des informations de l'utilisateur" })
+  }
 }

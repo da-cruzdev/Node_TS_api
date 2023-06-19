@@ -1,5 +1,5 @@
-import express, { Router } from "express";
-import { PrismaClient } from "@prisma/client";
+import express, { Router } from "express"
+import { PrismaClient } from "@prisma/client"
 import {
   createAccount,
   createSubAccount,
@@ -9,44 +9,35 @@ import {
   getOneAccount,
   getSubAccountByIban,
   getSubAccountsByParentId,
+  getUserAccount,
   unblockAccount,
-} from "./acounts.controller";
-import { authMiddleware } from "../user/middlewares/auth.middleware";
+} from "./acounts.controller"
+import { authMiddleware } from "../user/middlewares/auth.middleware"
 
 const AccountsRoutes = (prisma: PrismaClient): Router => {
-  const router = express.Router();
+  const router = express.Router()
 
-  router.post("/accounts/create", authMiddleware, createAccount);
+  router.post("/accounts/create", authMiddleware, createAccount)
 
-  router.post("/accounts/subaccounts/create", authMiddleware, createSubAccount);
+  router.post("/accounts/subaccounts/create", authMiddleware, createSubAccount)
 
-  router.get("/accounts", authMiddleware, getAllAccounts);
+  router.get("/accounts", authMiddleware, getAllAccounts)
 
-  router.get("/accounts/:iban", authMiddleware, getOneAccount);
+  router.get("/accounts/:iban", authMiddleware, getOneAccount)
 
-  router.get(
-    "/accounts/:iban/subaccounts",
-    authMiddleware,
-    getSubAccountsByParentId
-  );
+  router.get("/users/:id/accounts", getUserAccount)
 
-  router.get(
-    "/accounts/:iban/subaccounts/:iban",
-    authMiddleware,
-    getSubAccountByIban
-  );
+  router.get("/accounts/:iban/subaccounts", authMiddleware, getSubAccountsByParentId)
 
-  router.get(
-    "/accounts/:iban/subaccounts/:iban/unblock",
-    authMiddleware,
-    unblockAccount
-  );
+  router.get("/accounts/:iban/subaccounts/:iban", authMiddleware, getSubAccountByIban)
 
-  router.delete("/accounts/:iban", authMiddleware, deleteAccount);
+  router.get("/accounts/:iban/subaccounts/:iban/unblock", authMiddleware, unblockAccount)
 
-  router.delete("/subaccounts/:iban", authMiddleware, deleteSubAccount);
+  router.delete("/accounts/:iban", authMiddleware, deleteAccount)
 
-  return router;
-};
+  router.delete("/subaccounts/:iban", authMiddleware, deleteSubAccount)
 
-export default AccountsRoutes;
+  return router
+}
+
+export default AccountsRoutes

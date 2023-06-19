@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,38 +11,39 @@ model Transaction {
   id                  Int      @id @default(autoincrement())
   amount              Float
   transactionType     String
-  currency String?
+  currency            String?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
-  accountEmitter      Account? @relation(name: "Emitter", fields: [accountIbanEmitter], references: [iban])
-  accountReceiver     Account? @relation(name: "Receiver", fields: [accountIbanReceiver], references: [iban])
   accountIbanEmitter  String?
   accountIbanReceiver String?
+  accountReceiver     Account? @relation("Receiver", fields: [accountIbanReceiver], references: [iban])
+  accountEmitter      Account? @relation("Emitter", fields: [accountIbanEmitter], references: [iban])
 }
 
 model Account {
   iban                 String        @id @unique
   name                 String
   email                String        @unique
-  number               String        @unique
   balance              Float
   currency             String
   bic                  String
   accountType          String
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
-  transactionsEmitted  Transaction[] @relation("Emitter")
+  parentId             String?
+  userId               Int?
+  user                 User?         @relation("User", fields: [userId], references: [id])
   transactionsReceived Transaction[] @relation("Receiver")
-  // parentAccount Account? @relation("ParentAccount", fields: [parentId], references: [iban])
-  parentId String?
+  transactionsEmitted  Transaction[] @relation("Emitter")
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   name      String
-  email     String   @unique
+  email     String    @unique
   password  String
-  token String @default("")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  token     String    @default("")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  accounts  Account[] @relation("User")
 }
