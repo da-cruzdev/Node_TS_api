@@ -1,16 +1,12 @@
 // import Joi from "joi";
-const Joi = require("joi");
+const Joi = require("joi")
 
 export const TransactionSchema = Joi.object({
   amount: Joi.number().positive().required(),
-  transactionType: Joi.string()
-    .valid("credit", "debit", "transfert")
-    .required(),
-  currency: Joi.string().valid("FCFA", "USD", "EURO").when("transactionType", {
-    is: "debit",
-    then: Joi.string().optional(),
-    otherwise: Joi.string().required(),
-  }),
+  transactionType: Joi.string().valid("credit", "debit", "transfert").required(),
+  status: Joi.string().valid("in process", "approved", "blocked"),
+
+  reason: Joi.string().optional(),
   accountIbanEmitter: Joi.string().when("transactionType", {
     is: "debit",
     then: Joi.string().required(),
@@ -21,4 +17,4 @@ export const TransactionSchema = Joi.object({
     then: Joi.string().required(),
     otherwise: Joi.string().optional(),
   }),
-});
+})

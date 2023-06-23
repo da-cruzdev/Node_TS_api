@@ -1,9 +1,10 @@
 interface TransactionData {
-  amount: number;
-  accountIbanReceiver?: string;
-  currency: "USD" | "EURO";
-  transactionType: "credit" | "debit" | "transfert";
-  accountIbanEmitter?: string;
+  amount: number
+  accountIbanReceiver?: string
+  reason?: string
+  transactionType: "credit" | "debit" | "transfert"
+  status?: "in process" | "approved" | "rejected"
+  accountIbanEmitter?: string
 }
 
-export default TransactionData;
+export default TransactionData

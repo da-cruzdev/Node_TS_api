@@ -1,22 +1,35 @@
-import express, { Router } from "express";
-import { PrismaClient } from "@prisma/client";
+import express, { Router } from "express"
+import { PrismaClient } from "@prisma/client"
 import {
   createTransaction,
   getAllTransactions,
   getOneTransaction,
-} from "./transactions.controller";
-import { authMiddleware } from "../user/middlewares/auth.middleware";
+  getTransactions,
+  getUsersTransactions,
+  rejectTransaction,
+  updateTransaction,
+  validateTransaction,
+} from "./transactions.controller"
+import { authMiddleware } from "../user/middlewares/auth.middleware"
 
 const TransactionsRoutes = (prisma: PrismaClient): Router => {
-  const router = express.Router();
+  const router = express.Router()
 
-  router.post("/transactions/create", authMiddleware, createTransaction);
+  router.post("/transactions/create", authMiddleware, createTransaction)
 
-  router.get("/transactions", authMiddleware, getAllTransactions);
+  router.post("/transactions/:id/update", updateTransaction)
 
-  router.get("/transactions/:id", authMiddleware, getOneTransaction);
+  router.get("/transactions", authMiddleware, getTransactions)
 
-  return router;
-};
+  router.get("/transactions/:id", authMiddleware, getOneTransaction)
 
-export default TransactionsRoutes;
+  router.get("/users/transactions", authMiddleware, getUsersTransactions)
+
+  router.get("/transactions/:id/validate", authMiddleware, validateTransaction)
+
+  router.get("/transactions/:id/reject", authMiddleware, rejectTransaction)
+
+  return router
+}
+
+export default TransactionsRoutes

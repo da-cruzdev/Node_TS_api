@@ -10,7 +10,7 @@ const UserRoutes = (prisma: PrismaClient): Router => {
 
   router.post("/auth/login", login)
 
-  router.post("/auth/login", authMiddleware, logout)
+  router.post("/auth/logout", authMiddleware, logout)
 
   router.post("/auth/forget-password", verifyEmail)
 

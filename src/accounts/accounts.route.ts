@@ -3,6 +3,7 @@ import { PrismaClient } from "@prisma/client"
 import {
   createAccount,
   createSubAccount,
+  creditAccount,
   deleteAccount,
   deleteSubAccount,
   getAllAccounts,
@@ -25,7 +26,9 @@ const AccountsRoutes = (prisma: PrismaClient): Router => {
 
   router.get("/accounts/:iban", authMiddleware, getOneAccount)
 
-  router.get("/users/:id/accounts", getUserAccount)
+  router.get("/users/accounts", authMiddleware, getUserAccount)
+
+  router.post("/account/credit", creditAccount)
 
   router.get("/accounts/:iban/subaccounts", authMiddleware, getSubAccountsByParentId)
 

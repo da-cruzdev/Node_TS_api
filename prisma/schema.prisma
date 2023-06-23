@@ -11,19 +11,19 @@ model Transaction {
   id                  Int      @id @default(autoincrement())
   amount              Float
   transactionType     String
-  currency            String?
+  reason              String?  @default("")
+  status              String   @default("in process")
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
   accountIbanEmitter  String?
   accountIbanReceiver String?
-  accountReceiver     Account? @relation("Receiver", fields: [accountIbanReceiver], references: [iban])
   accountEmitter      Account? @relation("Emitter", fields: [accountIbanEmitter], references: [iban])
+  accountReceiver     Account? @relation("Receiver", fields: [accountIbanReceiver], references: [iban])
 }
 
 model Account {
   iban                 String        @id @unique
   name                 String
-  email                String        @unique
   balance              Float
   currency             String
   bic                  String
@@ -33,8 +33,8 @@ model Account {
   parentId             String?
   userId               Int?
   user                 User?         @relation("User", fields: [userId], references: [id])
-  transactionsReceived Transaction[] @relation("Receiver")
   transactionsEmitted  Transaction[] @relation("Emitter")
+  transactionsReceived Transaction[] @relation("Receiver")
 }
 
 model User {
@@ -42,6 +42,7 @@ model User {
   name      String
   email     String    @unique
   password  String
+  role      String    @default("user")
   token     String    @default("")
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt

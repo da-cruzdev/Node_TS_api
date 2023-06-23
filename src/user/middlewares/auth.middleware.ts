@@ -13,6 +13,7 @@ export const authMiddleware = (req: any, res: Response, next: NextFunction) => {
 
   try {
     const secret: string = process.env.SECRET as string
+
     const decoded = jwt.verify(token, secret)
     req.user = decoded
     next()

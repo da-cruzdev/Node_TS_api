@@ -18,9 +18,9 @@ export const generateIban = (): string => {
 
 export const createAccount = async (req: Request, res: Response) => {
   try {
-    const { name, email, number, balance, currency, bic } = req.body
+    const { name, number, balance, currency, bic } = req.body
     const validateData = await accountSchema.validateAsync(
-      { name, email, number, balance, currency, bic, accountType: "current" },
+      { name, number, balance, currency, bic, accountType: "current" },
       {
         abortEarly: false,
       },
@@ -30,8 +30,6 @@ export const createAccount = async (req: Request, res: Response) => {
     const newAccount = {
       iban,
       name: validateData.name,
-      email: validateData.email,
-      number: validateData.number,
       balance: validateData.balance,
       currency: validateData.currency,
       bic: validateData.bic,
@@ -47,64 +45,46 @@ export const createAccount = async (req: Request, res: Response) => {
 
 export const createSubAccount = async (req: Request, res: Response) => {
   try {
-    const { accountIban, name, email, number, balance, currency, bic, accountType } = req.body
-
-    const validationResult = accountSchema.validate(
-      {
-        name,
-        email,
-        number,
-        balance,
-        currency,
-        bic,
-        accountType,
-      },
-      { abortEarly: false },
-    )
-    if (validationResult.error) {
-      return res.status(400).json({ error: validationResult.error.details[0].message })
-    }
+    const { accountIban, accountType } = req.body
 
     const mainAccount = await prisma.account.findUnique({
       where: { iban: accountIban },
     })
     if (!mainAccount) {
-      return res.status(404).json({ error: "Main account not found" })
+      return res.status(404).json({ error: "Compte principal introuvable" })
     }
 
-    if (mainAccount.accountType !== "courant") {
-      return res.status(400).json({ error: "Main account must be of type courant" })
+    if (mainAccount.accountType !== "current") {
+      return res.status(400).json({ error: "Le compte principal doit être de type courant" })
     }
 
     let subAccountType
     if (accountType === "savings" || accountType === "blocked") {
       subAccountType = accountType
     } else {
-      return res.status(400).json({ error: "Invalid account type for sub account" })
+      return res.status(400).json({ error: "Type de compte invalide pour le sous-compte" })
     }
 
-    const ibanPrefix = "CI"
-    const iban = `${ibanPrefix}${uuidv4()}`
+    const iban = generateIban()
+
     const newSubAccount = {
       iban,
-      name,
-      email,
-      number,
-      balance,
-      currency,
-      bic,
+      name: mainAccount.name,
+      balance: 0,
+      currency: mainAccount.currency,
+      bic: mainAccount.bic,
       accountType: subAccountType,
-      parentId: accountIban,
+      parentId: mainAccount.iban,
+      userId: mainAccount.userId,
     }
+
     const createdSubAccount = await prisma.account.create({
       data: newSubAccount,
     })
 
     res.status(200).json(createdSubAccount)
   } catch (error: any) {
-    res.status(500).json({
-      error: `Please ${error.meta.target[0]} already exists...Enter another one`,
-    })
+    res.status(500).json({ error: "Une erreur est survenue lors de la création du sous-compte" })
   }
 }
 
@@ -139,20 +119,57 @@ export const getAllAccounts = async (req: Request, res: Response) => {
   res.status(200).json(response)
 }
 
-export const getUserAccount = async (req: Request, res: Response) => {
+export const getUserAccount = async (req: any, res: Response) => {
   try {
-    const userId = +req.params.id
+    const userId = req.user.id
 
     const user = await prisma.user.findUnique({ where: { id: userId } })
     if (!user) {
       res.status(404).json({ error: "Utilisateur introuvable" })
     }
 
-    const userAccounts = await prisma.account.findFirst({ where: { userId } })
+    const mainAccount = await prisma.account.findFirst({ where: { userId } })
+    if (!mainAccount) {
+      res.status(404).json({ error: "Compte principal introuvable" })
+    }
+
+    let subAccounts: any[] = []
+    if (mainAccount) {
+      subAccounts = await prisma.account.findMany({ where: { parentId: mainAccount.iban } })
+    }
+
+    const userAccounts = {
+      mainAccount,
+      subAccounts,
+    }
 
     res.status(200).json(userAccounts)
   } catch (error) {
     res.status(500).json({ error: "Erreur survenue lors de la récupération des comptes" })
+  }
+}
+
+export const creditAccount = async (req: Request, res: Response) => {
+  try {
+    const { accountIban, amount } = req.body
+
+    const account = await prisma.account.findUnique({
+      where: { iban: accountIban },
+    })
+    if (!account) {
+      return res.status(404).json({ error: "Compte introuvable" })
+    }
+
+    const updatedAccount = await prisma.account.update({
+      where: { iban: accountIban },
+      data: {
+        balance: account.balance + amount,
+      },
+    })
+
+    res.status(200).json(updatedAccount)
+  } catch (error: any) {
+    res.status(500).json({ error: "Une erreur est survenue lors du crédit du compte" })
   }
 }
 
@@ -278,7 +295,7 @@ export const updateAccount = async (req: Request, res: Response) => {
       where: { iban },
       data: {
         name,
-        email,
+
         balance,
         currency,
         bic,

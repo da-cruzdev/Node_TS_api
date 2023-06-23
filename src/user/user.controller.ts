@@ -42,7 +42,6 @@ export const signUp = async (req: Request, res: Response) => {
     const newAccount = {
       iban,
       name: validateData.name,
-      email: validateData.email,
       balance: 0,
       currency: "XOF",
       bic,
@@ -54,9 +53,12 @@ export const signUp = async (req: Request, res: Response) => {
 
     const token = generateToken(newUser)
 
-    const user = { ...newUser, password: undefined, token: token }
+    await prisma.user.update({
+      where: { id: newUser.id },
+      data: { token: token },
+    })
 
-    res.status(200).json({ user, createdAccount })
+    res.status(200).json({ newUser })
   } catch (error: any) {
     if (error && error.details) {
       const errors = error.details.reduce((acc: any, current: any) => {
@@ -65,8 +67,6 @@ export const signUp = async (req: Request, res: Response) => {
       }, {})
       res.status(400).json({ error: "Erreur de validation", errors, success: false })
     } else {
-      console.log(error)
-
       res.status(500).json({ error: "Une erreur est survenue lors de la création du compte" })
     }
   }
@@ -89,8 +89,9 @@ export const login = async (req: Request, res: Response) => {
     }
 
     const token = generateToken(user)
+    const newUser = { ...user, token }
 
-    res.status(200).json({ token: token })
+    res.status(200).json(newUser)
   } catch (error) {
     res.status(500).json({ error: "Erreur de connection.....!!!" })
   }
@@ -98,16 +99,21 @@ export const login = async (req: Request, res: Response) => {
 
 export const logout = async (req: Request, res: Response) => {
   try {
-    const token = req.headers.authorization?.split(" ")[1]
+    const token = req.headers.authorization
 
     if (!token) {
       return res.status(401).json({ error: "Authorization header missing" })
     }
 
-    const user = await prisma.user.findFirst({ where: { token: token } })
-    if (user) {
-      user.token = ""
-    }
+    // const user = await prisma.user.findFirst({ where: { token: token } })
+    // if (user) {
+    //   user.token = ""
+    //   await prisma.user.update({
+    //     where: { id: user.id },
+    //     data: { token: "" },
+    //   })
+    // }
+
     res.status(200).json({ message: "Déconnexion réussie" })
   } catch (error) {
     res.status(500).json({ error: "Une erreur est survenue lors de la déconnexion" })
@@ -173,9 +179,9 @@ export const getUserList = async (limit: number) => {
   return users
 }
 
-export const getUserById: RequestHandler = async (req: Request, res: Response) => {
+export const getUserById: RequestHandler = async (req: any, res: Response) => {
   try {
-    const userId = (req as any).user?.id
+    const userId = req.user.id
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
