@@ -236,11 +236,11 @@ export const unblockAccount = async (req: Request, res: Response) => {
     })
 
     if (!accountData) {
-      throw new Error("Account not found")
+      throw new Error("Compte introuvable")
     }
 
     if (accountData.accountType !== "blocked") {
-      throw new Error("Account is not blocked")
+      throw new Error("Ce compte n'est pas bloqué")
     }
 
     await prisma.account.update({
@@ -248,7 +248,33 @@ export const unblockAccount = async (req: Request, res: Response) => {
       data: { accountType: "savings" },
     })
 
-    return res.status(200).json({ message: "Account unblocked successfully" })
+    return res.status(200).json({ message: "Compte débloqué avec succès" })
+  } catch (error: any) {
+    res.status(500).json({ error: error.message })
+  }
+}
+
+export const blockAccount = async (req: Request, res: Response) => {
+  try {
+    const { iban } = req.params
+    const accountData = await prisma.account.findUnique({
+      where: { iban },
+    })
+
+    if (!accountData) {
+      throw new Error("Compte introuvable")
+    }
+
+    if (accountData.accountType === "blocked") {
+      throw new Error("Ce compte est déja bloqué")
+    }
+
+    await prisma.account.update({
+      where: { iban },
+      data: { accountType: "blocked" },
+    })
+
+    return res.status(200).json({ message: "Compte bloqué avec succèss" })
   } catch (error: any) {
     res.status(500).json({ error: error.message })
   }

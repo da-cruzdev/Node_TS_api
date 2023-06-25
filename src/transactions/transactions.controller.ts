@@ -3,6 +3,7 @@ import { TransactionSchema } from "./validators/transaction.validator"
 import { Request, Response } from "express"
 import TransactionData from "./dto/transaction.dto"
 import { TransactionFilterOptions } from "./dto/transaction-filter.dto"
+import { PaginationOptions } from "./dto/pagination.dto"
 
 const prisma = new PrismaClient()
 
@@ -235,23 +236,6 @@ export const getOneTransaction = async (req: Request, res: Response) => {
   }
 }
 
-export const getUsersTransactions = async (req: any, res: Response) => {
-  const filterOptions: Prisma.TransactionWhereInput = getTransactionsFilterCriteria(req)
-  try {
-    const transactions = await prisma.transaction.findMany({
-      where: { ...filterOptions },
-      include: {
-        accountReceiver: true,
-      },
-      orderBy: { createdAt: "desc" },
-    })
-
-    res.status(200).json(transactions)
-  } catch (error) {
-    res.status(500).json({ error: `Error retrieving transactions: ${error}` })
-  }
-}
-
 export const validateTransaction = async (req: Request, res: Response) => {
   try {
     // const userRole = (req as any).user?.role
@@ -302,12 +286,36 @@ export const rejectTransaction = async (req: Request, res: Response) => {
   }
 }
 
+export const getUsersTransactions = async (req: any, res: Response) => {
+  const filterOptions: Prisma.TransactionWhereInput = getTransactionsFilterCriteria(req)
+
+  const total = await prisma.transaction.count()
+  const pages = total
+
+  try {
+    const transactions = await prisma.transaction.findMany({
+      where: { ...filterOptions },
+      include: {
+        accountReceiver: true,
+      },
+      orderBy: { createdAt: "desc" },
+    })
+
+    res.status(200).json(transactions)
+  } catch (error) {
+    res.status(500).json({ error: `Error retrieving transactions: ${error}` })
+  }
+}
+
 function getTransactionsFilterCriteria(req: any, skipUserId = false): Prisma.TransactionWhereInput {
   const filterOptions: TransactionFilterOptions = req.query
+  const paginationOptions: PaginationOptions = req.query
+
   const userId = req.user.id
 
   return {
     accountEmitter: {
+      take: paginationOptions.pageSize,
       ...(userId && !skipUserId && { user: { id: +userId } }),
       ...(filterOptions.accountType && { accountType: filterOptions.accountType }),
     },
