@@ -188,8 +188,8 @@ export const getAllTransactionsByAdmin = async (req: any, res: Response) => {
 
     const transactions = await prisma.transaction.findMany({
       where: { ...filterOptions },
-      take: take,
-      skip: skip,
+      take: Number(take) ?? undefined,
+      skip: Number(skip) ?? undefined,
       include: {
         accountEmitter: true,
         accountReceiver: true,
@@ -200,7 +200,7 @@ export const getAllTransactionsByAdmin = async (req: any, res: Response) => {
       },
     })
 
-    res.status(200).json(transactions)
+    res.status(200).json({ data: transactions, pagination: { take, skip, total } })
   } catch (error) {}
 }
 
