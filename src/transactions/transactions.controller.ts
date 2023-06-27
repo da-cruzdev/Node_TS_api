@@ -37,6 +37,11 @@ export const createTransaction = async (req: Request, res: Response) => {
         if (accountEmitterTransfer?.accountType === "blocked") {
           throw new Error("Les comptes bloqués ne peuvent effectuer que des opérations de crédit")
         }
+
+        if (accountEmitterTransfer?.balance! <= 0) {
+          throw new Error("Le solde de votre compte est insuffisant pour effectuer la transaction")
+        }
+
         transactionData = {
           amount: amount,
           transactionType,

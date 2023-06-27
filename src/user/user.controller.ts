@@ -8,7 +8,6 @@ import bcrypt from "bcrypt"
 import { generateToken } from "./token/createToken"
 import { generate } from "randomstring"
 import { generateIban } from "../accounts/acounts.controller"
-import { log } from "console"
 
 const prisma = new PrismaClient()
 
@@ -123,14 +122,12 @@ export const logout = async (req: Request, res: Response) => {
 export const verifyEmail = async (req: Request, res: Response) => {
   try {
     const email = req.body.email
-    const userData = await prisma.user.findUnique({
+    const userData = await prisma.user.findFirst({
       where: { email: email },
     })
 
     if (userData) {
-      const randomString = generate()
-      const updateUser = await prisma.user.update({ where: { email: userData.email }, data: { token: randomString } })
-      res.status(200).json({ message: "Veuillez réinitialiser votre mot de passe....!!", token: updateUser.token })
+      res.status(200).json({ message: "Veuillez réinitialiser votre mot de passe....!!", token: userData.token })
     } else {
       res.status(400).json({ error: "L'email est incorrect" })
     }
@@ -151,10 +148,11 @@ export const resetPassword = async (req: Request, res: Response) => {
       res.status(400).json({ error: "Le token est invalide" })
       return
     }
+    const userEmail = user.email
 
     const hashedPassword = await bcrypt.hash(password, 10)
     const updatedUser = await prisma.user.update({
-      where: { id: user.id },
+      where: { email: userEmail },
       data: {
         password: hashedPassword,
       },
@@ -162,7 +160,7 @@ export const resetPassword = async (req: Request, res: Response) => {
 
     res.status(200).json({ message: "Le mot de passe a été réinitialisé avec succès" })
   } catch (error) {
-    res.status(500).json({ error })
+    res.status(500).json(error)
   }
 }
 
@@ -198,7 +196,7 @@ export const getUserById: RequestHandler = async (req: any, res: Response) => {
 export const updateUserInfo = async (req: any, res: Response) => {
   try {
     const userId = req.user.id
-    const { name, email, oldPassword, newPassword } = req.body
+    const { name, email, oldPassword, newPassword }: updatedUserData = req.body
     const validateData = await validateUpdateUser.validateAsync(
       {
         name,
@@ -221,7 +219,11 @@ export const updateUserInfo = async (req: any, res: Response) => {
       return res.status(400).json({ error: "Ancien mot de passe incorrect" })
     }
 
-    const isPasswordCorrect = await bcrypt.compare(oldPassword, verifyOldPassword.password)
+    if (!verifyOldPassword.password) {
+      return res.status(400).json({ error: "Le mot de passe de l'utilisateur est manquant" })
+    }
+
+    const isPasswordCorrect = await bcrypt.compare(oldPassword!, verifyOldPassword.password)
     console.log(isPasswordCorrect)
 
     if (!isPasswordCorrect) {
