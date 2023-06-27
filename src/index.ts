@@ -23,7 +23,7 @@ const app = express()
 app.use(
   cors({
     origin: "http://localhost:4200",
-    methods: ["GET", "POST", "UPDATE"],
+    methods: ["GET", "POST", "UPDATE", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
 )

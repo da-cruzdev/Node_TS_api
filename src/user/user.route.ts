@@ -1,6 +1,6 @@
 import express, { Router } from "express"
 import { PrismaClient } from "@prisma/client"
-import { verifyEmail, getUserList, login, signUp, resetPassword, logout, getUserById } from "./user.controller"
+import { verifyEmail, getUserList, login, signUp, resetPassword, logout, getUserById, updateUserInfo } from "./user.controller"
 import { authMiddleware } from "./middlewares/auth.middleware"
 
 const UserRoutes = (prisma: PrismaClient): Router => {
@@ -17,6 +17,8 @@ const UserRoutes = (prisma: PrismaClient): Router => {
   router.post("/auth/reset-password", resetPassword)
 
   router.get("/user", authMiddleware, getUserById)
+
+  router.patch("/user/update", authMiddleware, updateUserInfo)
 
   router.get("/admin/list", async (req, res) => {
     const { limit } = req.query

@@ -2,8 +2,8 @@ import { PrismaClient } from "@prisma/client"
 import { Response, Request } from "express"
 import { RequestHandler } from "express"
 
-import { CreateUserDTO, LoginDTO } from "./dto/user.dto"
-import { userSchema } from "./validators/user.validator"
+import { CreateUserDTO, LoginDTO, updatedUserData } from "./dto/user.dto"
+import { userSchema, validateUpdateUser } from "./validators/user.validator"
 import bcrypt from "bcrypt"
 import { generateToken } from "./token/createToken"
 import { generate } from "randomstring"
@@ -157,7 +157,6 @@ export const resetPassword = async (req: Request, res: Response) => {
       where: { id: user.id },
       data: {
         password: hashedPassword,
-        token: "",
       },
     })
 
@@ -193,5 +192,49 @@ export const getUserById: RequestHandler = async (req: any, res: Response) => {
     res.status(200).json({ user })
   } catch (error) {
     res.status(500).json({ error: "Une erreur est survenue lors de la récupération des informations de l'utilisateur" })
+  }
+}
+
+export const updateUserInfo = async (req: any, res: Response) => {
+  try {
+    const userId = req.user.id
+    const { name, email, oldPassword, newPassword } = req.body
+    const validateData = await validateUpdateUser.validateAsync(
+      {
+        name,
+        email,
+        oldPassword,
+      },
+      { abortEarly: false },
+    )
+
+    if (validateData.error) {
+      return res.status(400).json({ error: validateData.error.details[0].message })
+    }
+
+    const verifyOldPassword = await prisma.user.findFirst({
+      where: { id: userId, password: oldPassword },
+    })
+
+    if (!verifyOldPassword) {
+      return res.status(400).json({ error: "Ancien mot de passe incorrect" })
+    }
+
+    const hashedPassword = newPassword ? await bcrypt.hash(validateData.newPassword, 10) : undefined
+
+    const updateUser = await prisma.user.update({
+      where: { id: userId },
+      data: { name, email, password: hashedPassword },
+    })
+    // if (updateUser.name) {
+    //   res.status(200).json({ message: "Le nom a été mis à jour avec succès!!" })
+    // }
+
+    const newToken = generateToken(updateUser)
+
+    res.status(200).json({ ...updateUser, token: newToken })
+  } catch (error) {
+    console.log(error)
+    res.status(500).json(error)
   }
 }

@@ -174,8 +174,9 @@ export const transferTransaction = async (transactionData: any) => {
   })
 }
 
-export const getTransactions = async (req: any, res: Response) => {
+export const getAllTransactionsByAdmin = async (req: any, res: Response) => {
   const filterOptions: Prisma.TransactionWhereInput = getTransactionsFilterCriteria(req, true)
+  const { take, skip }: PaginationOptions = req.query
 
   try {
     const role = req.user.role
@@ -183,12 +184,17 @@ export const getTransactions = async (req: any, res: Response) => {
       res.status(401).json({ error: "vous n'êtes pas autorisé à avoir ses données" })
     }
 
+    const total = await prisma.transaction.count({ where: filterOptions })
+
     const transactions = await prisma.transaction.findMany({
       where: { ...filterOptions },
+      take: take,
+      skip: skip,
       include: {
         accountEmitter: true,
         accountReceiver: true,
       },
+
       orderBy: {
         createdAt: "desc",
       },
@@ -288,20 +294,22 @@ export const rejectTransaction = async (req: Request, res: Response) => {
 
 export const getUsersTransactions = async (req: any, res: Response) => {
   const filterOptions: Prisma.TransactionWhereInput = getTransactionsFilterCriteria(req)
+  const { take, skip }: PaginationOptions = req.query
 
-  const total = await prisma.transaction.count()
-  const pages = total
+  const total = await prisma.transaction.count({ where: filterOptions })
 
   try {
     const transactions = await prisma.transaction.findMany({
       where: { ...filterOptions },
+      take: Number(take) ?? undefined,
+      skip: Number(skip) ?? undefined,
       include: {
         accountReceiver: true,
       },
       orderBy: { createdAt: "desc" },
     })
 
-    res.status(200).json(transactions)
+    res.status(200).json({ data: transactions, pagination: { take, skip, total } })
   } catch (error) {
     res.status(500).json({ error: `Error retrieving transactions: ${error}` })
   }
@@ -309,13 +317,11 @@ export const getUsersTransactions = async (req: any, res: Response) => {
 
 function getTransactionsFilterCriteria(req: any, skipUserId = false): Prisma.TransactionWhereInput {
   const filterOptions: TransactionFilterOptions = req.query
-  const paginationOptions: PaginationOptions = req.query
 
   const userId = req.user.id
 
   return {
     accountEmitter: {
-      take: paginationOptions.pageSize,
       ...(userId && !skipUserId && { user: { id: +userId } }),
       ...(filterOptions.accountType && { accountType: filterOptions.accountType }),
     },
@@ -327,11 +333,11 @@ function getTransactionsFilterCriteria(req: any, skipUserId = false): Prisma.Tra
       },
     }),
     ...(filterOptions.query && buildFullTextSearch(filterOptions.query)),
-    ...(filterOptions.accountType && {
-      accountEmitter: {
-        accountType: filterOptions.accountType,
-      },
-    }),
+    // ...(filterOptions.accountType && {
+    //   accountEmitter: {
+    //     accountType: filterOptions.accountType,
+    //   },
+    // }),
   }
 }
 

@@ -3,8 +3,8 @@ import { PrismaClient } from "@prisma/client"
 import {
   createTransaction,
   getAllTransactions,
+  getAllTransactionsByAdmin,
   getOneTransaction,
-  getTransactions,
   getUsersTransactions,
   rejectTransaction,
   updateTransaction,
@@ -19,7 +19,7 @@ const TransactionsRoutes = (prisma: PrismaClient): Router => {
 
   router.post("/transactions/:id/update", updateTransaction)
 
-  router.get("/transactions", authMiddleware, getTransactions)
+  router.get("/transactions", authMiddleware, getAllTransactionsByAdmin)
 
   router.get("/transactions/:id", authMiddleware, getOneTransaction)
 
