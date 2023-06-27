@@ -204,6 +204,7 @@ export const updateUserInfo = async (req: any, res: Response) => {
         name,
         email,
         oldPassword,
+        newPassword,
       },
       { abortEarly: false },
     )
@@ -213,10 +214,17 @@ export const updateUserInfo = async (req: any, res: Response) => {
     }
 
     const verifyOldPassword = await prisma.user.findFirst({
-      where: { id: userId, password: oldPassword },
+      where: { id: userId },
     })
 
     if (!verifyOldPassword) {
+      return res.status(400).json({ error: "Ancien mot de passe incorrect" })
+    }
+
+    const isPasswordCorrect = await bcrypt.compare(oldPassword, verifyOldPassword.password)
+    console.log(isPasswordCorrect)
+
+    if (!isPasswordCorrect) {
       return res.status(400).json({ error: "Ancien mot de passe incorrect" })
     }
 
@@ -226,9 +234,6 @@ export const updateUserInfo = async (req: any, res: Response) => {
       where: { id: userId },
       data: { name, email, password: hashedPassword },
     })
-    // if (updateUser.name) {
-    //   res.status(200).json({ message: "Le nom a été mis à jour avec succès!!" })
-    // }
 
     const newToken = generateToken(updateUser)
 
